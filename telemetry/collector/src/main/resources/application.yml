@@ -1,0 +1,8 @@
+kafka:
+  bootstrap-servers: localhost:9092
+  topics:
+    hubs: telemetry.hubs.v1
+    sensors: telemetry.sensors.v1
+  serializers:
+    key: "org.apache.kafka.common.serialization.StringSerializer"
+    value: "ru.yandex.practicum.serializer.AvroSerializer"

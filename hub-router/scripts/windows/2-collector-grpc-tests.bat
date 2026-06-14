@@ -1,5 +1,4 @@
 @echo off
-chcp 65001 >nul
 setlocal
 
 REM Локальный запуск тестов Hub Router для проверки сервиса Collector
