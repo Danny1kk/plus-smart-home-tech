@@ -11,6 +11,8 @@ import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
+import java.nio.ByteBuffer;
+
 @Slf4j
 @GrpcService
 public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.CollectorControllerImplBase {
@@ -32,12 +34,13 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            byte[] data = request.toByteArray();
+            byte[] rawData = request.toByteArray();
+            byte[] dataWithLength = addLengthPrefix(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
-                    .value(data)
+                    .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .build();
 
@@ -55,12 +58,13 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            byte[] data = request.toByteArray();
+            byte[] rawData = request.toByteArray();
+            byte[] dataWithLength = addLengthPrefix(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
-                    .value(data)
+                    .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .build();
 
@@ -72,5 +76,12 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
             responseObserver.onError(e);
         }
+    }
+
+    private byte[] addLengthPrefix(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
+        buffer.putInt(data.length);
+        buffer.put(data);
+        return buffer.array();
     }
 }
