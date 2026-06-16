@@ -6,13 +6,13 @@ import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
-import ru.yandex.practicum.grpc.telemetry.collector.CollectorAppGrpc;
+import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
 @Slf4j
 @GrpcService
-public class TelemetryCollectorGrpcService extends CollectorAppGrpc.CollectorAppImplBase {
+public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.CollectorControllerImplBase {
 
     private final KafkaTemplate<String, byte[]> kafkaTemplate;
     private final String sensorsTopic;
