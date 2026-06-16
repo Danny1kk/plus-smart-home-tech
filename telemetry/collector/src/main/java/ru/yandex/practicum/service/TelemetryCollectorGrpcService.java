@@ -73,12 +73,4 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             responseObserver.onError(e);
         }
     }
-
-    private byte[] addLengthPrefixBigEndian(byte[] data) {
-        ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
-        buffer.order(ByteOrder.BIG_ENDIAN);
-        buffer.putInt(data.length);
-        buffer.put(data);
-        return buffer.array();
-    }
 }
