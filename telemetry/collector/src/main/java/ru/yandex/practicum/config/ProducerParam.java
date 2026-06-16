@@ -13,6 +13,8 @@ public class ProducerParam {
     private final Long timestamp;
     private final String key;
     private final byte[] value;
+    private final String eventClass;
+    private final String eventType;
 
     public boolean isValid() {
         return topic != null && timestamp != null && key != null && value != null;

@@ -39,6 +39,8 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .key(request.getId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass("SensorEventProto")
+                    .eventType("SENSOR_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
@@ -62,6 +64,8 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .key(request.getHubId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass("HubEventProto")
+                    .eventType("HUB_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);

@@ -35,13 +35,22 @@ public class KafkaEventProducer implements DisposableBean {
     }
 
     private ProducerRecord<String, byte[]> createProducerRecord(ProducerParam param) {
-        return new ProducerRecord<>(
+        ProducerRecord<String, byte[]> record = new ProducerRecord<>(
                 param.getTopic(),
                 param.getPartition(),
                 param.getTimestamp(),
                 param.getKey(),
                 param.getValue()
         );
+
+        if (param.getEventClass() != null) {
+            record.headers().add("event_class", param.getEventClass().getBytes());
+        }
+        if (param.getEventType() != null) {
+            record.headers().add("event_type", param.getEventType().getBytes());
+        }
+
+        return record;
     }
 
     private void sendKafkaMessage(ProducerRecord<String, byte[]> record) throws Exception {
