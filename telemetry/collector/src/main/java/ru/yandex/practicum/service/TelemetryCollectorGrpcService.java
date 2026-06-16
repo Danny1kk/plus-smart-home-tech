@@ -10,9 +10,6 @@ import ru.yandex.practicum.config.ProducerParam;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
-import ru.yandex.practicum.grpc.telemetry.event.EventMessage;
-
-import java.nio.ByteBuffer;
 
 @Slf4j
 @GrpcService
@@ -35,19 +32,13 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            EventMessage eventMessage = EventMessage.newBuilder()
-                    .setSensorEvent(request)
-                    .build();
-
-            byte[] data = eventMessage.toByteArray();
+            byte[] data = request.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
-                    .eventClass("SensorEventProto")
-                    .eventType("SENSOR_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
@@ -64,19 +55,13 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            EventMessage eventMessage = EventMessage.newBuilder()
-                    .setHubEvent(request)
-                    .build();
-
-            byte[] data = eventMessage.toByteArray();
+            byte[] data = request.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
-                    .eventClass("HubEventProto")
-                    .eventType("HUB_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
