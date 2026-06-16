@@ -35,25 +35,19 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            byte[] rawData = request.toByteArray();
-            byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
+            byte[] data = request.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
-                    .value(dataWithLength)
+                    .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
-                    .partition(0)
-                    .eventClass("SensorEventProto")
-                    .eventType("SENSOR_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
-
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Ошибка при обработке события датчика: {}", request.getId(), e);
             responseObserver.onError(e);
         }
     }
@@ -62,21 +56,16 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            byte[] rawData = request.toByteArray();
-            byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
+            byte[] data = request.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
-                    .value(dataWithLength)
+                    .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
-                    .partition(0)
-                    .eventClass("HubEventProto")
-                    .eventType("HUB_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
-
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (Exception e) {
