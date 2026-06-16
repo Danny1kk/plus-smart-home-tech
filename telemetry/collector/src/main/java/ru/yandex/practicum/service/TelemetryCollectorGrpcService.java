@@ -36,7 +36,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
             byte[] rawData = request.toByteArray();
-            byte[] dataWithLength = addLengthPrefixLittleEndian(rawData);
+            byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
@@ -60,7 +60,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
             byte[] rawData = request.toByteArray();
-            byte[] dataWithLength = addLengthPrefixLittleEndian(rawData);
+            byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
