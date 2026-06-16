@@ -8,9 +8,11 @@ import org.springframework.beans.factory.annotation.Value;
 import ru.yandex.practicum.config.KafkaEventProducer;
 import ru.yandex.practicum.config.ProducerParam;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
-import ru.yandex.practicum.grpc.telemetry.event.EventMessage;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 @Slf4j
 @GrpcService
@@ -33,18 +35,17 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            EventMessage eventMessage = EventMessage.newBuilder()
-                    .setSensorEvent(request)
-                    .build();
+            byte[] rawData = request.toByteArray();
+            byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
-            byte[] data = eventMessage.toByteArray();
+            String key = null;
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
-                    .key(request.getId())
-                    .value(data)
+                    .key(key)
+                    .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
-                    .eventClass("EventMessage")
+                    .eventClass("SensorEventProto")
                     .eventType("SENSOR_EVENT")
                     .build();
 
@@ -62,18 +63,17 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            EventMessage eventMessage = EventMessage.newBuilder()
-                    .setHubEvent(request)
-                    .build();
+            byte[] rawData = request.toByteArray();
+            byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
-            byte[] data = eventMessage.toByteArray();
+            String key = null;
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
-                    .key(request.getHubId())
-                    .value(data)
+                    .key(key)
+                    .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
-                    .eventClass("EventMessage")
+                    .eventClass("HubEventProto")
                     .eventType("HUB_EVENT")
                     .build();
 
@@ -85,5 +85,13 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
             responseObserver.onError(e);
         }
+    }
+
+    private byte[] addLengthPrefixBigEndian(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
+        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.putInt(data.length);
+        buffer.put(data);
+        return buffer.array();
     }
 }

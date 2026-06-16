@@ -17,6 +17,6 @@ public class ProducerParam {
     private final String eventType;
 
     public boolean isValid() {
-        return topic != null && timestamp != null && key != null && value != null;
+        return topic != null && timestamp != null && value != null;
     }
 }
