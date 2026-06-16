@@ -1,3 +1,5 @@
+spring.kafka.bootstrap-servers=localhost:9092
+
 kafka.topic.telemetry.sensors-topic=telemetry.sensors.v1
 kafka.topic.telemetry.hubs-topic=telemetry.hubs.v1
 logging.level.ru.yandex.practicum=TRACE
