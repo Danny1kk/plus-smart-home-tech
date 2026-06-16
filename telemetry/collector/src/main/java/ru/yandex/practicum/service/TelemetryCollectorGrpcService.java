@@ -11,9 +11,6 @@ import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-
 @Slf4j
 @GrpcService
 public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.CollectorControllerImplBase {
