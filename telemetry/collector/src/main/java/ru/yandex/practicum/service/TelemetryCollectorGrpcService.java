@@ -39,13 +39,12 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .setSensorEvent(request)
                     .build();
 
-            byte[] rawData = eventMessage.toByteArray();
-            byte[] dataWithLength = addLengthPrefix(rawData);
+            byte[] data = eventMessage.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
-                    .value(dataWithLength)
+                    .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .eventClass("SensorEventProto")
                     .eventType("SENSOR_EVENT")
@@ -69,13 +68,12 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .setHubEvent(request)
                     .build();
 
-            byte[] rawData = eventMessage.toByteArray();
-            byte[] dataWithLength = addLengthPrefix(rawData);
+            byte[] data = eventMessage.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
-                    .value(dataWithLength)
+                    .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .eventClass("HubEventProto")
                     .eventType("HUB_EVENT")
@@ -89,12 +87,5 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
             responseObserver.onError(e);
         }
-    }
-
-    private byte[] addLengthPrefix(byte[] data) {
-        ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
-        buffer.putInt(data.length);
-        buffer.put(data);
-        return buffer.array();
     }
 }
