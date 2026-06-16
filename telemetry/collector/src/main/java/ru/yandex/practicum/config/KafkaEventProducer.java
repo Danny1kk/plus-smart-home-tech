@@ -20,6 +20,12 @@ public class KafkaEventProducer implements DisposableBean {
         if (!param.isValid()) {
             throw new IllegalArgumentException("Недопустимый ProducerParam: " + param);
         }
+
+        byte[] value = param.getValue();
+        log.info("ОТПРАВКА: Топик={}, Ключ={}, Размер={}. Первые 4 байта: [{}, {}, {}, {}]",
+                param.getTopic(), param.getKey(), value.length,
+                value[0], value[1], value[2], value[3]);
+
         try {
             ProducerRecord<String, byte[]> record = createProducerRecord(param);
             sendKafkaMessage(record);
@@ -40,6 +46,10 @@ public class KafkaEventProducer implements DisposableBean {
 
     private void sendKafkaMessage(ProducerRecord<String, byte[]> record) throws Exception {
         try {
+            byte[] data = record.value();
+            log.info("ОТПРАВКА В KAFKA: топик={}, ключ={}, размер={} байт",
+                    record.topic(), record.key(), data != null ? data.length : 0);
+
             kafkaTemplate.send(record).get();
         } catch (Exception e) {
             throw new KafkaSendException("Ошибка при отправке сообщения", e);
