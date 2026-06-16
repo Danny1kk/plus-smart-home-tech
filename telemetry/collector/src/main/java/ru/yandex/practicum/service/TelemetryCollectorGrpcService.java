@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import ru.yandex.practicum.config.KafkaEventProducer;
 import ru.yandex.practicum.config.ProducerParam;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
+import ru.yandex.practicum.grpc.telemetry.event.EventMessage;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
@@ -35,7 +36,11 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            byte[] rawData = request.toByteArray();
+            EventMessage eventMessage = EventMessage.newBuilder()
+                    .setSensorEvent(request)
+                    .build();
+
+            byte[] rawData = eventMessage.toByteArray();
             byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
@@ -59,7 +64,11 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            byte[] rawData = request.toByteArray();
+            EventMessage eventMessage = EventMessage.newBuilder()
+                    .setHubEvent(request)
+                    .build();
+
+            byte[] rawData = eventMessage.toByteArray();
             byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
@@ -77,14 +86,6 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
             responseObserver.onError(e);
         }
-    }
-
-    private byte[] addLengthPrefixLittleEndian(byte[] data) {
-        ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        buffer.putInt(data.length);
-        buffer.put(data);
-        return buffer.array();
     }
 
     private byte[] addLengthPrefixBigEndian(byte[] data) {
