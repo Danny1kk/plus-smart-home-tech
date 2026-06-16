@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import ru.yandex.practicum.config.KafkaEventProducer;
 import ru.yandex.practicum.config.ProducerParam;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
+import ru.yandex.practicum.grpc.telemetry.event.EventMessage;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
@@ -32,13 +33,19 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            byte[] data = request.toByteArray();
+            EventMessage eventMessage = EventMessage.newBuilder()
+                    .setSensorEvent(request)
+                    .build();
+
+            byte[] data = eventMessage.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass("EventMessage")
+                    .eventType("SENSOR_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
@@ -46,7 +53,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Ошибка обработки датчика: {}", request.getId(), e);
+            log.error("Ошибка при обработке события датчика: {}", request.getId(), e);
             responseObserver.onError(e);
         }
     }
@@ -55,13 +62,19 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            byte[] data = request.toByteArray();
+            EventMessage eventMessage = EventMessage.newBuilder()
+                    .setHubEvent(request)
+                    .build();
+
+            byte[] data = eventMessage.toByteArray();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass("EventMessage")
+                    .eventType("HUB_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
@@ -69,7 +82,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            log.error("Ошибка обработки хаба: {}", request.getHubId(), e);
+            log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
             responseObserver.onError(e);
         }
     }
