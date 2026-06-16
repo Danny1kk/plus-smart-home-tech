@@ -35,13 +35,20 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            request.writeDelimitedTo(baos);
+            byte[] data = request.toByteArray();
+            byte[] result = new byte[4 + data.length];
+
+            result[0] = (byte) (data.length >> 24);
+            result[1] = (byte) (data.length >> 16);
+            result[2] = (byte) (data.length >> 8);
+            result[3] = (byte) (data.length);
+
+            System.arraycopy(data, 0, result, 4, data.length);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
-                    .value(baos.toByteArray())
+                    .value(result)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .build();
 
@@ -49,9 +56,6 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
 
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
-        } catch (IOException e) {
-            log.error("Ошибка сериализации сенсора: {}", request.getId(), e);
-            responseObserver.onError(e);
         } catch (Exception e) {
             responseObserver.onError(e);
         }
@@ -61,13 +65,20 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            request.writeDelimitedTo(baos);
+            byte[] data = request.toByteArray();
+            byte[] result = new byte[4 + data.length];
+
+            result[0] = (byte) (data.length >> 24);
+            result[1] = (byte) (data.length >> 16);
+            result[2] = (byte) (data.length >> 8);
+            result[3] = (byte) (data.length);
+
+            System.arraycopy(data, 0, result, 4, data.length);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
-                    .value(baos.toByteArray())
+                    .value(result)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .build();
 
@@ -75,9 +86,6 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
 
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
-        } catch (IOException e) {
-            log.error("Ошибка сериализации события хаба: {}", request.getHubId(), e);
-            responseObserver.onError(e);
         } catch (Exception e) {
             log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
             responseObserver.onError(e);
