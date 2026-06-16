@@ -29,10 +29,10 @@ public class TelemetryCollectorGrpcService extends CollectorAppGrpc.CollectorApp
 
     @Override
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
-        log.trace("gRPC: Получено событие датчика: {}", request.getDeviceId());
+        log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
             byte[] payload = request.toByteArray();
-            kafkaTemplate.send(sensorsTopic, request.getDeviceId(), payload);
+            kafkaTemplate.send(sensorsTopic, request.getId(), payload);
 
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
