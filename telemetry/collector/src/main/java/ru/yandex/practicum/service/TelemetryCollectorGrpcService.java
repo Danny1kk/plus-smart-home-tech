@@ -10,6 +10,7 @@ import ru.yandex.practicum.config.ProducerParam;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
+import ru.yandex.practicum.grpc.telemetry.event.EventMessage;
 
 import java.nio.ByteBuffer;
 
@@ -34,12 +35,12 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            byte[] rawData = request.toByteArray();
+            EventMessage eventMessage = EventMessage.newBuilder()
+                    .setSensorEvent(request)
+                    .build();
 
-            ByteBuffer buffer = ByteBuffer.allocate(rawData.length + 4);
-            buffer.putInt(rawData.length);
-            buffer.put(rawData);
-            byte[] dataWithLength = buffer.array();
+            byte[] rawData = eventMessage.toByteArray();
+            byte[] dataWithLength = addLengthPrefix(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
@@ -64,12 +65,12 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            byte[] rawData = request.toByteArray();
+            EventMessage eventMessage = EventMessage.newBuilder()
+                    .setHubEvent(request)
+                    .build();
 
-            ByteBuffer buffer = ByteBuffer.allocate(rawData.length + 4);
-            buffer.putInt(rawData.length);
-            buffer.put(rawData);
-            byte[] dataWithLength = buffer.array();
+            byte[] rawData = eventMessage.toByteArray();
+            byte[] dataWithLength = addLengthPrefix(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
@@ -88,5 +89,12 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
             responseObserver.onError(e);
         }
+    }
+
+    private byte[] addLengthPrefix(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
+        buffer.putInt(data.length);
+        buffer.put(data);
+        return buffer.array();
     }
 }
