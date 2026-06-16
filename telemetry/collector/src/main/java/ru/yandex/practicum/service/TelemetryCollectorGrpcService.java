@@ -43,6 +43,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .key(request.getId())
                     .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .partition(0)
                     .eventClass("SensorEventProto")
                     .eventType("SENSOR_EVENT")
                     .build();
@@ -69,6 +70,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .key(request.getHubId())
                     .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .partition(0)
                     .eventClass("HubEventProto")
                     .eventType("HUB_EVENT")
                     .build();
