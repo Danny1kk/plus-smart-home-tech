@@ -12,6 +12,7 @@ import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 @Slf4j
 @GrpcService
@@ -35,7 +36,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
             byte[] rawData = request.toByteArray();
-            byte[] dataWithLength = addLengthPrefix(rawData);
+            byte[] dataWithLength = addLengthPrefixLittleEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
@@ -59,7 +60,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
             byte[] rawData = request.toByteArray();
-            byte[] dataWithLength = addLengthPrefix(rawData);
+            byte[] dataWithLength = addLengthPrefixLittleEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
@@ -78,8 +79,17 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         }
     }
 
-    private byte[] addLengthPrefix(byte[] data) {
+    private byte[] addLengthPrefixLittleEndian(byte[] data) {
         ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.putInt(data.length);
+        buffer.put(data);
+        return buffer.array();
+    }
+
+    private byte[] addLengthPrefixBigEndian(byte[] data) {
+        ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
+        buffer.order(ByteOrder.BIG_ENDIAN);
         buffer.putInt(data.length);
         buffer.put(data);
         return buffer.array();
