@@ -1,4 +1,4 @@
-package ru.yandex.practicum.enums;
+package ru.yandex.practicum.model.hub.enums;
 
 public enum DeviceType {
     MOTION_SENSOR,

@@ -1,8 +1,5 @@
-kafka:
-  bootstrap-servers: localhost:9092
-  topics:
-    hubs: telemetry.hubs.v1
-    sensors: telemetry.sensors.v1
-  serializers:
-    key: "org.apache.kafka.common.serialization.StringSerializer"
-    value: "ru.yandex.practicum.serializer.AvroSerializer"
+kafka.topic.telemetry.sensors-topic=telemetry.sensors.v1
+kafka.topic.telemetry.hubs-topic=telemetry.hubs.v1
+logging.level.ru.yandex.practicum=TRACE
+
+grpc.server.port=59091
