@@ -85,7 +85,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
 
     private byte[] addLengthPrefixBigEndian(byte[] data) {
         ByteBuffer buffer = ByteBuffer.allocate(data.length + 4);
-        buffer.order(ByteOrder.BIG_ENDIAN);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
         buffer.putInt(data.length);
         buffer.put(data);
         return buffer.array();
