@@ -11,9 +11,6 @@ import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-
 @Slf4j
 @GrpcService
 public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.CollectorControllerImplBase {
@@ -36,19 +33,11 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
             byte[] data = request.toByteArray();
-            byte[] result = new byte[4 + data.length];
-
-            result[0] = (byte) (data.length >> 24);
-            result[1] = (byte) (data.length >> 16);
-            result[2] = (byte) (data.length >> 8);
-            result[3] = (byte) (data.length);
-
-            System.arraycopy(data, 0, result, 4, data.length);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
-                    .value(result)
+                    .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .build();
 
@@ -57,6 +46,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (Exception e) {
+            log.error("Ошибка при обработке события датчика: {}", request.getId(), e);
             responseObserver.onError(e);
         }
     }
@@ -66,19 +56,11 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
             byte[] data = request.toByteArray();
-            byte[] result = new byte[4 + data.length];
-
-            result[0] = (byte) (data.length >> 24);
-            result[1] = (byte) (data.length >> 16);
-            result[2] = (byte) (data.length >> 8);
-            result[3] = (byte) (data.length);
-
-            System.arraycopy(data, 0, result, 4, data.length);
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
-                    .value(result)
+                    .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .build();
 
