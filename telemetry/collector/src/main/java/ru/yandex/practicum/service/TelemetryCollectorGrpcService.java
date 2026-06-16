@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import ru.yandex.practicum.config.KafkaEventProducer;
 import ru.yandex.practicum.config.ProducerParam;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
-import ru.yandex.practicum.grpc.telemetry.event.EventMessage;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
@@ -36,11 +35,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            EventMessage eventMessage = EventMessage.newBuilder()
-                    .setSensorEvent(request)
-                    .build();
-
-            byte[] rawData = eventMessage.toByteArray();
+            byte[] rawData = request.toByteArray();
             byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
@@ -48,6 +43,8 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .key(request.getId())
                     .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass("SensorEventProto")
+                    .eventType("SENSOR_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
@@ -64,11 +61,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            EventMessage eventMessage = EventMessage.newBuilder()
-                    .setHubEvent(request)
-                    .build();
-
-            byte[] rawData = eventMessage.toByteArray();
+            byte[] rawData = request.toByteArray();
             byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
             ProducerParam param = ProducerParam.builder()
@@ -76,6 +69,8 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .key(request.getHubId())
                     .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass("HubEventProto")
+                    .eventType("HUB_EVENT")
                     .build();
 
             kafkaEventProducer.sendRecord(param);
