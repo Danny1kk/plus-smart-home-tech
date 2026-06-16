@@ -38,11 +38,9 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             byte[] rawData = request.toByteArray();
             byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
-            String key = null;
-
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
-                    .key(key)
+                    .key(request.getId())
                     .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .eventClass("SensorEventProto")
@@ -66,11 +64,9 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             byte[] rawData = request.toByteArray();
             byte[] dataWithLength = addLengthPrefixBigEndian(rawData);
 
-            String key = null;
-
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
-                    .key(key)
+                    .key(request.getHubId())
                     .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .eventClass("HubEventProto")

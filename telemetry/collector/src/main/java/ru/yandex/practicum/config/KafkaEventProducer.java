@@ -50,6 +50,11 @@ public class KafkaEventProducer implements DisposableBean {
             record.headers().add("event_type", param.getEventType().getBytes());
         }
 
+        record.headers().add("content-type", "application/x-protobuf".getBytes());
+        record.headers().add("ce-type", param.getEventClass() != null ? param.getEventClass().getBytes() : "unknown".getBytes());
+        record.headers().add("ce-source", "telemetry-collector".getBytes());
+        record.headers().add("ce-specversion", "1.0".getBytes());
+
         return record;
     }
 
