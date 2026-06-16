@@ -11,6 +11,8 @@ import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
+import java.nio.ByteBuffer;
+
 @Slf4j
 @GrpcService
 public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.CollectorControllerImplBase {
@@ -32,12 +34,17 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие датчика: {}", request.getId());
         try {
-            byte[] data = request.toByteArray();
+            byte[] rawData = request.toByteArray();
+
+            ByteBuffer buffer = ByteBuffer.allocate(rawData.length + 4);
+            buffer.putInt(rawData.length);
+            buffer.put(rawData);
+            byte[] dataWithLength = buffer.array();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
-                    .value(data)
+                    .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .eventClass("SensorEventProto")
                     .eventType("SENSOR_EVENT")
@@ -57,12 +64,17 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
         log.trace("gRPC: Получено событие хаба: {}", request.getHubId());
         try {
-            byte[] data = request.toByteArray();
+            byte[] rawData = request.toByteArray();
+
+            ByteBuffer buffer = ByteBuffer.allocate(rawData.length + 4);
+            buffer.putInt(rawData.length);
+            buffer.put(rawData);
+            byte[] dataWithLength = buffer.array();
 
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
-                    .value(data)
+                    .value(dataWithLength)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
                     .eventClass("HubEventProto")
                     .eventType("HUB_EVENT")
