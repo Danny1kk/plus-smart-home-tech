@@ -1,7 +1,6 @@
 package ru.yandex.practicum.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.DisposableBean;
@@ -12,10 +11,10 @@ import ru.yandex.practicum.exception.errorHandler.KafkaSendException;
 @Slf4j
 @Component
 public class KafkaEventProducer implements DisposableBean {
-    private final KafkaTemplate<String, SpecificRecordBase> kafkaTemplate;
-    private final Producer<String, SpecificRecordBase> kafkaProducer;
+    private final KafkaTemplate<String, byte[]> kafkaTemplate;
+    private final Producer<String, byte[]> kafkaProducer;
 
-    public KafkaEventProducer(KafkaTemplate<String, SpecificRecordBase> kafkaTemplate, Producer<String, SpecificRecordBase> kafkaProducer) {
+    public KafkaEventProducer(KafkaTemplate<String, byte[]> kafkaTemplate, Producer<String, byte[]> kafkaProducer) {
         this.kafkaTemplate = kafkaTemplate;
         this.kafkaProducer = kafkaProducer;
     }
@@ -25,14 +24,14 @@ public class KafkaEventProducer implements DisposableBean {
             throw new IllegalArgumentException("Недопустимый ProducerParam: " + param);
         }
         try {
-            ProducerRecord<String, SpecificRecordBase> record = createProducerRecord(param);
+            ProducerRecord<String, byte[]> record = createProducerRecord(param);
             sendKafkaMessage(record);
         } catch (Exception e) {
             handleException(param, e);
         }
     }
 
-    private ProducerRecord<String, SpecificRecordBase> createProducerRecord(ProducerParam param) {
+    private ProducerRecord<String, byte[]> createProducerRecord(ProducerParam param) {
         return new ProducerRecord<>(
                 param.getTopic(),
                 param.getPartition(),
@@ -42,7 +41,7 @@ public class KafkaEventProducer implements DisposableBean {
         );
     }
 
-    private void sendKafkaMessage(ProducerRecord<String, SpecificRecordBase> record) throws Exception {
+    private void sendKafkaMessage(ProducerRecord<String, byte[]> record) throws Exception {
         try {
             kafkaTemplate.send(record).get();
         } catch (Exception e) {
