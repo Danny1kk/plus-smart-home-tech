@@ -1,7 +1,6 @@
 package ru.yandex.practicum.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -12,11 +11,9 @@ import ru.yandex.practicum.exception.errorHandler.KafkaSendException;
 @Component
 public class KafkaEventProducer implements DisposableBean {
     private final KafkaTemplate<String, byte[]> kafkaTemplate;
-    private final Producer<String, byte[]> kafkaProducer;
 
-    public KafkaEventProducer(KafkaTemplate<String, byte[]> kafkaTemplate, Producer<String, byte[]> kafkaProducer) {
+    public KafkaEventProducer(KafkaTemplate<String, byte[]> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
-        this.kafkaProducer = kafkaProducer;
     }
 
     public void sendRecord(ProducerParam param) {
@@ -57,8 +54,6 @@ public class KafkaEventProducer implements DisposableBean {
     public void destroy() throws Exception {
         try {
             kafkaTemplate.flush();
-            kafkaProducer.flush();
-            kafkaProducer.close();
             log.info("KafkaEventProducer корректно остановлен");
         } catch (Exception e) {
             log.error("Ошибка при закрытии KafkaEventProducer", e);
