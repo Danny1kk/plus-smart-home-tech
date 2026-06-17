@@ -43,20 +43,11 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
 
         executorService.submit(() -> {
             try {
-                byte[] data;
-                switch (request.getPayloadCase()) {
-                    case MOTION_SENSOR_EVENT -> data = request.getMotionSensorEvent().toByteArray();
-                    case TEMPERATURE_SENSOR_EVENT -> data = request.getTemperatureSensorEvent().toByteArray();
-                    case LIGHT_SENSOR_EVENT -> data = request.getLightSensorEvent().toByteArray();
-                    case CLIMATE_SENSOR_EVENT -> data = request.getClimateSensorEvent().toByteArray();
-                    case SWITCH_SENSOR_EVENT -> data = request.getSwitchSensorEvent().toByteArray();
-                    default -> throw new IllegalArgumentException("Неизвестный тип события датчика: " + request.getPayloadCase());
-                }
+                byte[] data = request.toByteArray();
 
                 long timestamp = request.getTimestamp().getSeconds() > 0
                         ? request.getTimestamp().getSeconds() * 1000
                         : System.currentTimeMillis();
-
                 String eventClass = request.getClass().getSimpleName().replace("Proto", "");
 
                 ProducerParam param = ProducerParam.builder()
@@ -85,21 +76,13 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
 
         executorService.submit(() -> {
             try {
-                byte[] data;
-                switch (request.getPayloadCase()) {
-                    case DEVICE_ADDED -> data = request.getDeviceAdded().toByteArray();
-                    case DEVICE_REMOVED -> data = request.getDeviceRemoved().toByteArray();
-                    case SCENARIO_ADDED -> data = request.getScenarioAdded().toByteArray();
-                    case SCENARIO_REMOVED -> data = request.getScenarioRemoved().toByteArray();
-                    default -> throw new IllegalArgumentException("Неизвестный тип события хаба: " + request.getPayloadCase());
-                }
+                byte[] data = request.toByteArray();
 
                 long timestamp = request.getTimestamp().getSeconds() > 0
                         ? request.getTimestamp().getSeconds() * 1000
                         : System.currentTimeMillis();
 
                 String eventClass = request.getClass().getSimpleName().replace("Proto", "");
-
                 ProducerParam param = ProducerParam.builder()
                         .topic(hubsTopic)
                         .key(request.getHubId())
@@ -113,6 +96,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
 
             } catch (Exception e) {
                 log.error("Ошибка при асинхронной обработке события хаба: {}", request.getHubId(), e);
+                responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asException());
             }
         });
     }

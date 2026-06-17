@@ -37,8 +37,6 @@ public class KafkaEventProducer implements DisposableBean {
     private ProducerRecord<String, byte[]> createProducerRecord(ProducerParam param) {
         ProducerRecord<String, byte[]> record = new ProducerRecord<>(
                 param.getTopic(),
-                param.getPartition(),
-                param.getTimestamp(),
                 param.getKey(),
                 param.getValue()
         );
@@ -49,11 +47,6 @@ public class KafkaEventProducer implements DisposableBean {
         if (param.getEventType() != null) {
             record.headers().add("event_type", param.getEventType().getBytes());
         }
-
-        record.headers().add("content-type", "application/x-protobuf".getBytes());
-        record.headers().add("ce-type", param.getEventClass() != null ? param.getEventClass().getBytes() : "unknown".getBytes());
-        record.headers().add("ce-source", "telemetry-collector".getBytes());
-        record.headers().add("ce-specversion", "1.0".getBytes());
 
         return record;
     }
