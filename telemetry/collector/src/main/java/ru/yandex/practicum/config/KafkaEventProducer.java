@@ -64,7 +64,7 @@ public class KafkaEventProducer implements DisposableBean {
             log.info("ОТПРАВКА В KAFKA: топик={}, ключ={}, размер={} байт",
                     record.topic(), record.key(), data != null ? data.length : 0);
 
-            kafkaTemplate.send(record).get();
+            kafkaTemplate.send(record);
         } catch (Exception e) {
             throw new KafkaSendException("Ошибка при отправке сообщения", e);
         }
