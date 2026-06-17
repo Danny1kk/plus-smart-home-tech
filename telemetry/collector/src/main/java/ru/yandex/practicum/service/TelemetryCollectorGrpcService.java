@@ -108,6 +108,9 @@ import com.google.protobuf.Empty;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
+import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.specific.SpecificDatumWriter;
 import org.springframework.beans.factory.annotation.Value;
 import ru.yandex.practicum.config.KafkaEventProducer;
 import ru.yandex.practicum.config.ProducerParam;
@@ -117,7 +120,8 @@ import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
 
 import ru.yandex.practicum.kafka.telemetry.event.*;
 
-import java.nio.ByteBuffer;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -162,10 +166,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                         .setPayload(mapSensorPayload(request))
                         .build();
 
-                // Безопасное извлечение байтового массива из ByteBuffer
-                ByteBuffer buffer = avroEvent.toByteBuffer();
-                byte[] data = new byte[buffer.remaining()];
-                buffer.get(data);
+                byte[] data = serializeAvro(avroEvent, SensorEventAvro.class);
 
                 String eventClass = avroEvent.getClass().getName();
 
@@ -205,10 +206,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                         .setPayload(mapHubPayload(request))
                         .build();
 
-                // Безопасное извлечение байтового массива из ByteBuffer
-                ByteBuffer buffer = avroHubEvent.toByteBuffer();
-                byte[] data = new byte[buffer.remaining()];
-                buffer.get(data);
+                byte[] data = serializeAvro(avroHubEvent, HubEventAvro.class);
 
                 String eventClass = avroHubEvent.getClass().getName();
 
@@ -279,5 +277,14 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
 
             default -> throw new IllegalArgumentException("Неизвестное событие хаба: " + request.getPayloadCase());
         };
+    }
+
+    private <T> byte[] serializeAvro(T avroObject, Class<T> clazz) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+        SpecificDatumWriter<T> writer = new SpecificDatumWriter<>(clazz);
+        writer.write(avroObject, encoder);
+        encoder.flush();
+        return out.toByteArray();
     }
 }
