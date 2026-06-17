@@ -35,12 +35,14 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         try {
             byte[] data = request.toByteArray();
 
+            String eventClass = request.getClass().getSimpleName().replace("Proto", "");
+
             ProducerParam param = ProducerParam.builder()
                     .topic(sensorsTopic)
                     .key(request.getId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
-                    .eventClass(request.getClass().getSimpleName())
+                    .eventClass(eventClass)
                     .eventType(request.getPayloadCase().toString())
                     .build();
 
@@ -59,11 +61,15 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         try {
             byte[] data = request.toByteArray();
 
+            String eventClass = request.getClass().getSimpleName().replace("Proto", "");
+
             ProducerParam param = ProducerParam.builder()
                     .topic(hubsTopic)
                     .key(request.getHubId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass(eventClass)
+                    .eventType(request.getPayloadCase().toString())
                     .build();
 
             kafkaEventProducer.sendRecord(param);
@@ -71,7 +77,6 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
             responseObserver.onCompleted();
         } catch (Exception e) {
             log.error("Ошибка при обработке события хаба: {}", request.getHubId(), e);
-            responseObserver.onError(e);
-        }
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asException());        }
     }
 }
