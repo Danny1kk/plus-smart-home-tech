@@ -117,14 +117,21 @@ import ru.yandex.practicum.config.ProducerParam;
 import ru.yandex.practicum.grpc.telemetry.collector.CollectorControllerGrpc;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.SensorEventProto;
+import ru.yandex.practicum.kafka.telemetry.event.ScenarioConditionAvro;
+import ru.yandex.practicum.kafka.telemetry.event.DeviceActionAvro;
+import ru.yandex.practicum.kafka.telemetry.event.ConditionTypeAvro;
+import ru.yandex.practicum.kafka.telemetry.event.ConditionOperationAvro;
+import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 
 import ru.yandex.practicum.kafka.telemetry.event.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 @Slf4j
 @GrpcService
@@ -237,11 +244,32 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .setId(request.getDeviceRemoved().getId())
                     .build();
 
-            case SCENARIO_ADDED -> ScenarioAddedEventAvro.newBuilder()
-                    .setName(request.getScenarioAdded().getName())
-                    .setConditions(new java.util.ArrayList<>())
-                    .setActions(new java.util.ArrayList<>())
-                    .build();
+            case SCENARIO_ADDED -> {
+                List<ScenarioConditionAvro> conditions = request.getScenarioAdded().getConditionsList().stream()
+                        .map(condition -> ScenarioConditionAvro.newBuilder()
+                                .setSensorId(condition.getSensorId())
+                                .setType(ConditionTypeAvro.valueOf(condition.getType().name()))
+                                .setOperation(ConditionOperationAvro.valueOf(condition.getOperation().name()))
+                                .setValue(condition.hasBoolValue()
+                                        ? condition.getBoolValue()
+                                        : condition.getIntValue())
+                                .build())
+                        .collect(Collectors.toList());
+
+                List<DeviceActionAvro> actions = request.getScenarioAdded().getActionsList().stream()
+                        .map(action -> DeviceActionAvro.newBuilder()
+                                .setSensorId(action.getSensorId())
+                                .setType(ActionTypeAvro.valueOf(action.getType().name()))
+                                .setValue(action.hasValue() ? action.getValue() : null)
+                                .build())
+                        .collect(Collectors.toList());
+
+                yield ScenarioAddedEventAvro.newBuilder()
+                        .setName(request.getScenarioAdded().getName())
+                        .setConditions(conditions)
+                        .setActions(actions)
+                        .build();
+            }
 
             case SCENARIO_REMOVED -> ScenarioRemovedEventAvro.newBuilder()
                     .setName(request.getScenarioRemoved().getName())
