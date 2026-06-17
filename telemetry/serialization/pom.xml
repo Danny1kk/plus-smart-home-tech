@@ -18,9 +18,4 @@
         <module>proto-schemas</module>
     </modules>
 
-    <properties>
-        <grpc.version>1.62.2</grpc.version>
-        <protobuf.version>3.25.3</protobuf.version>
-    </properties>
-
 </project>
