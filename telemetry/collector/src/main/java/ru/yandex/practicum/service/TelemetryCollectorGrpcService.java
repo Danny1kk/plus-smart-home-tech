@@ -1,6 +1,7 @@
 package ru.yandex.practicum.service;
 
 import com.google.protobuf.Empty;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.server.service.GrpcService;
@@ -39,13 +40,16 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                     .key(request.getId())
                     .value(data)
                     .timestamp(request.getTimestamp().getSeconds() * 1000)
+                    .eventClass(request.getClass().getSimpleName())
+                    .eventType(request.getPayloadCase().toString())
                     .build();
 
             kafkaEventProducer.sendRecord(param);
             responseObserver.onNext(Empty.getDefaultInstance());
             responseObserver.onCompleted();
         } catch (Exception e) {
-            responseObserver.onError(e);
+            log.error("Ошибка при обработке gRPC события датчика", e);
+            responseObserver.onError(Status.INTERNAL.withDescription(e.getMessage()).asException());
         }
     }
 
