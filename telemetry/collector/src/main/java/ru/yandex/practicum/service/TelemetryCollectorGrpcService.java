@@ -123,7 +123,6 @@ import ru.yandex.practicum.kafka.telemetry.event.*;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -166,7 +165,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                         .setPayload(mapSensorPayload(request))
                         .build();
 
-                byte[] data = serializeAvro(avroEvent, SensorEventAvro.class);
+                byte[] data = serializeAvro(avroEvent);
 
                 String eventClass = avroEvent.getClass().getName();
 
@@ -203,10 +202,10 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                 HubEventAvro avroHubEvent = HubEventAvro.newBuilder()
                         .setHubId(request.getHubId())
                         .setTimestamp(Instant.ofEpochMilli(timestamp))
-                        .setPayload(mapHubPayload(request))
+                        .setPayload(mapHubPayloadToAvro(request))
                         .build();
 
-                byte[] data = serializeAvro(avroHubEvent, HubEventAvro.class);
+                byte[] data = serializeAvro(avroHubEvent);
 
                 String eventClass = avroHubEvent.getClass().getName();
 
@@ -225,6 +224,31 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                 log.error("Ошибка при асинхронной обработке события хаба: {}", request.getHubId(), e);
             }
         });
+    }
+
+    private Object mapHubPayloadToAvro(HubEventProto request) {
+        return switch (request.getPayloadCase()) {
+            case DEVICE_ADDED -> DeviceAddedEventAvro.newBuilder()
+                    .setId(request.getDeviceAdded().getId())
+                    .setType(DeviceTypeAvro.valueOf(request.getDeviceAdded().getType().name()))
+                    .build();
+
+            case DEVICE_REMOVED -> DeviceRemovedEventAvro.newBuilder()
+                    .setId(request.getDeviceRemoved().getId())
+                    .build();
+
+            case SCENARIO_ADDED -> ScenarioAddedEventAvro.newBuilder()
+                    .setName(request.getScenarioAdded().getName())
+                    .setConditions(new java.util.ArrayList<>())
+                    .setActions(new java.util.ArrayList<>())
+                    .build();
+
+            case SCENARIO_REMOVED -> ScenarioRemovedEventAvro.newBuilder()
+                    .setName(request.getScenarioRemoved().getName())
+                    .build();
+
+            default -> throw new IllegalArgumentException("Неизвестное событие хаба: " + request.getPayloadCase());
+        };
     }
 
     private Object mapSensorPayload(SensorEventProto request) {
@@ -254,35 +278,10 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         };
     }
 
-    private Object mapHubPayload(HubEventProto request) {
-        return switch (request.getPayloadCase()) {
-            case DEVICE_ADDED -> DeviceAddedEventAvro.newBuilder()
-                    .setId(request.getDeviceAdded().getId())
-                    .setType(DeviceTypeAvro.valueOf(request.getDeviceAdded().getType().name()))
-                    .build();
-
-            case DEVICE_REMOVED -> DeviceRemovedEventAvro.newBuilder()
-                    .setId(request.getDeviceRemoved().getId())
-                    .build();
-
-            case SCENARIO_ADDED -> ScenarioAddedEventAvro.newBuilder()
-                    .setName(request.getScenarioAdded().getName())
-                    .setConditions(List.of())
-                    .setActions(List.of())
-                    .build();
-
-            case SCENARIO_REMOVED -> ScenarioRemovedEventAvro.newBuilder()
-                    .setName(request.getScenarioRemoved().getName())
-                    .build();
-
-            default -> throw new IllegalArgumentException("Неизвестное событие хаба: " + request.getPayloadCase());
-        };
-    }
-
-    private <T> byte[] serializeAvro(T avroObject, Class<T> clazz) throws IOException {
+    private <T extends org.apache.avro.specific.SpecificRecordBase> byte[] serializeAvro(T avroObject) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-        SpecificDatumWriter<T> writer = new SpecificDatumWriter<>(clazz);
+        SpecificDatumWriter<T> writer = new SpecificDatumWriter<>(avroObject.getSchema());
         writer.write(avroObject, encoder);
         encoder.flush();
         return out.toByteArray();
