@@ -156,7 +156,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         executorService.submit(() -> {
             try {
                 long timestamp = request.getTimestamp().getSeconds() > 0
-                        ? request.getTimestamp().getSeconds() * 1000
+                        ? (request.getTimestamp().getSeconds() * 1000) + (request.getTimestamp().getNanos() / 1_000_000)
                         : System.currentTimeMillis();
 
                 SensorEventAvro avroEvent = SensorEventAvro.newBuilder()
@@ -197,7 +197,7 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
         executorService.submit(() -> {
             try {
                 long timestamp = request.getTimestamp().getSeconds() > 0
-                        ? request.getTimestamp().getSeconds() * 1000
+                        ? (request.getTimestamp().getSeconds() * 1000) + (request.getTimestamp().getNanos() / 1_000_000)
                         : System.currentTimeMillis();
 
                 HubEventAvro avroHubEvent = HubEventAvro.newBuilder()
