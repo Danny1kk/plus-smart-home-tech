@@ -77,7 +77,7 @@ public class KafkaEventProducer implements DisposableBean {
     @Override
     public void destroy() throws Exception {
         try {
-            kafkaTemplate.flush();
+//            kafkaTemplate.flush();
             log.info("KafkaEventProducer корректно остановлен");
         } catch (Exception e) {
             log.error("Ошибка при закрытии KafkaEventProducer", e);
