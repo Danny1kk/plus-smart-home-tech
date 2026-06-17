@@ -1,0 +1,42 @@
+[33m4efcffc[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdevelop[m[33m, [m[1;31morigin/develop[m[33m, [m[1;32m2-collector-grpc[m[33m)[m fix: resolve duplicate gRPC service implementation in telemetry collector
+[33m93bef67[m trigger ci
+[33me15baf3[m trigger ci
+[33mee94e2e[m trigger ci
+[33mf407e5e[m feat: add EventMessage for Kafka serialization
+[33m986fa04[m feat: add EventMessage for Kafka serialization part.7
+[33mc767ad3[m feat(test): add EventMessage for Kafka serialization part.7
+[33m86c6d91[m feat(test): add EventMessage for Kafka serialization part.6
+[33mcae9675[m feat(test): add EventMessage for Kafka serialization part.5
+[33m935cc68[m feat(test): add EventMessage for Kafka serialization part.4
+[33ma160d89[m feat: add EventMessage for Kafka serialization part.6
+[33mf871ec9[m feat(test): add EventMessage for Kafka serialization part.3
+[33mc1d6431[m feat(test): add EventMessage for Kafka serialization part.2
+[33m8ba1916[m feat: add EventMessage for Kafka serialization part.5
+[33m9b2a925[m feat: add EventMessage for Kafka serialization part.4
+[33m58d2cc8[m feat(test): add EventMessage for Kafka serialization
+[33m87ac7f1[m feat: add EventMessage for Kafka serialization part.3
+[33mdbe3a85[m feat(test): add EventMessage for Kafka serialization
+[33m88ed8b1[m feat: add EventMessage for Kafka serialization part.2
+[33m251b33b[m feat: add EventMessage for Kafka serialization
+[33m14c5b36[m feat: add EventMessage for Kafka serialization
+[33mb7edbc4[m feat(kafka): implement event production with KafkaEventProducer part.7
+[33m32b08cd[m feat(kafka): implement event production with KafkaEventProducer part.6
+[33mc0a08ac[m feat(kafka): implement event production with KafkaEventProducer part.5
+[33mfe25c6d[m feat(kafka): implement event production with KafkaEventProducer part.4
+[33mc0a90b0[m feat(kafka): implement event production with KafkaEventProducer part.3
+[33m875d2e1[m feat(kafka): implement event production with KafkaEventProducer part.2
+[33m4d90399[m feat(kafka): implement event production with KafkaEventProducer
+[33md7a70b1[m fix: application.properties
+[33mc3db329[m fix: correct mainClass configuration in collector pom.xml
+[33m23a6f0f[m refactor(grpc): rename service to CollectorController to match API requirements
+[33m2d81be6[m fix: resolve build issues and kafka configuration
+[33mfca7d88[m fix: add missing kafka.bootstrap-servers property
+[33m6cffe8e[m fix: add missing kafka.bootstrap-servers property
+[33mc6ec6c4[m feat: add gRPC collector with proto-schemas integration
+[33mb8b7839[m fix: correct mainClass configuration in collector pom.xml
+[33mb887833[m fix: correct mainClass configuration in collector pom.xml
+[33ma6611d0[m fix: correct mainClass configuration in collector pom.xml
+[33m8bc5db6[m trigger ci
+[33ma69c481[m feat: migrate collector service to gRPC and Protobuf
+[33m922ad47[m[33m ([m[1;31morigin/1-collector-json[m[33m, [m[1;32m1-collector-json[m[33m)[m feat: init collector service and configure hub/sensor telemetry endpoints
+[33m84bd6dc[m[33m ([m[1;32mmain[m[33m)[m Initial commit
