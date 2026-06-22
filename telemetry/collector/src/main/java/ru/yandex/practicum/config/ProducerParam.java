@@ -3,6 +3,7 @@ package ru.yandex.practicum.config;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
+import org.apache.avro.specific.SpecificRecordBase;
 
 @Builder
 @Getter
@@ -12,9 +13,7 @@ public class ProducerParam {
     private final Integer partition;
     private final Long timestamp;
     private final String key;
-    private final byte[] value;
-    private final String eventClass;
-    private final String eventType;
+    private final SpecificRecordBase value;
 
     public boolean isValid() {
         return topic != null && timestamp != null && value != null;

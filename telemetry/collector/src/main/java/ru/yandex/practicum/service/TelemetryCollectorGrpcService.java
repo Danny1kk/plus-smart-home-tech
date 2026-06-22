@@ -172,17 +172,11 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                         .setPayload(mapSensorPayload(request))
                         .build();
 
-                byte[] data = serializeAvro(avroEvent);
-
-                String eventClass = avroEvent.getClass().getName();
-
                 ProducerParam param = ProducerParam.builder()
                         .topic(sensorsTopic)
                         .key(request.getId())
-                        .value(data)
+                        .value(avroEvent)
                         .timestamp(timestamp)
-                        .eventClass(eventClass)
-                        .eventType(request.getPayloadCase().toString())
                         .build();
 
                 kafkaEventProducer.sendRecord(param);
@@ -212,17 +206,11 @@ public class TelemetryCollectorGrpcService extends CollectorControllerGrpc.Colle
                         .setPayload(mapHubPayloadToAvro(request))
                         .build();
 
-                byte[] data = serializeAvro(avroHubEvent);
-
-                String eventClass = avroHubEvent.getClass().getName();
-
                 ProducerParam param = ProducerParam.builder()
                         .topic(hubsTopic)
                         .key(request.getHubId())
-                        .value(data)
+                        .value(avroHubEvent)
                         .timestamp(timestamp)
-                        .eventClass(eventClass)
-                        .eventType(request.getPayloadCase().toString())
                         .build();
 
                 kafkaEventProducer.sendRecord(param);

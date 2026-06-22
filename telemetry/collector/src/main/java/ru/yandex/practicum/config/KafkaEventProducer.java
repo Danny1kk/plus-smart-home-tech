@@ -1,19 +1,24 @@
 package ru.yandex.practicum.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.specific.SpecificRecordBase;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+
 import ru.yandex.practicum.exception.errorHandler.KafkaSendException;
 
 @Slf4j
 @Component
 public class KafkaEventProducer implements DisposableBean {
-    private final KafkaTemplate<String, byte[]> kafkaTemplate;
+    private final KafkaTemplate<String, SpecificRecordBase> kafkaTemplate;
+    private final Producer<String, SpecificRecordBase> kafkaProducer;
 
-    public KafkaEventProducer(KafkaTemplate<String, byte[]> kafkaTemplate) {
+    public KafkaEventProducer(KafkaTemplate<String, SpecificRecordBase> kafkaTemplate, Producer<String, SpecificRecordBase> kafkaProducer) {
         this.kafkaTemplate = kafkaTemplate;
+        this.kafkaProducer = kafkaProducer;
     }
 
     public void sendRecord(ProducerParam param) {
@@ -21,49 +26,27 @@ public class KafkaEventProducer implements DisposableBean {
             throw new IllegalArgumentException("Недопустимый ProducerParam: " + param);
         }
 
-        byte[] value = param.getValue();
-        log.info("ОТПРАВКА: Топик={}, Ключ={}, Размер={}. Первые 4 байта: [{}, {}, {}, {}]",
-                param.getTopic(), param.getKey(), value.length,
-                value[0], value[1], value[2], value[3]);
-
         try {
-            ProducerRecord<String, byte[]> record = createProducerRecord(param);
+            ProducerRecord<String, SpecificRecordBase> record = createProducerRecord(param);
             sendKafkaMessage(record);
         } catch (Exception e) {
             handleException(param, e);
         }
     }
 
-    private ProducerRecord<String, byte[]> createProducerRecord(ProducerParam param) {
-        ProducerRecord<String, byte[]> record = new ProducerRecord<>(
+    private ProducerRecord<String, SpecificRecordBase> createProducerRecord(ProducerParam param) {
+        return new ProducerRecord<>(
                 param.getTopic(),
+                param.getPartition(),
+                param.getTimestamp(),
                 param.getKey(),
                 param.getValue()
         );
-
-        if (param.getEventClass() != null) {
-            record.headers().add("event_class", param.getEventClass().getBytes());
-        }
-        if (param.getEventType() != null) {
-            record.headers().add("event_type", param.getEventType().getBytes());
-        }
-
-        return record;
     }
 
-    private void sendKafkaMessage(ProducerRecord<String, byte[]> record) throws Exception {
+    private void sendKafkaMessage(ProducerRecord<String, SpecificRecordBase> record) throws Exception {
         try {
-            byte[] data = record.value();
-            log.info("ОТПРАВКА В KAFKA: топик={}, ключ={}, размер={} байт",
-                    record.topic(), record.key(), data != null ? data.length : 0);
-
-            kafkaTemplate.send(record).whenComplete((result, ex) -> {
-                if (ex != null) {
-                    log.error("Ошибка асинхронной отправки в Kafka для топика {}", record.topic(), ex);
-                } else {
-                    log.info("Успешно отправлено в Kafka! Смещение: {}", result.getRecordMetadata().offset());
-                }
-            });
+            kafkaTemplate.send(record).get();
         } catch (Exception e) {
             throw new KafkaSendException("Ошибка при отправке сообщения", e);
         }
@@ -77,6 +60,8 @@ public class KafkaEventProducer implements DisposableBean {
     public void destroy() throws Exception {
         try {
             kafkaTemplate.flush();
+            kafkaProducer.flush();
+            kafkaProducer.close();
             log.info("KafkaEventProducer корректно остановлен");
         } catch (Exception e) {
             log.error("Ошибка при закрытии KafkaEventProducer", e);
