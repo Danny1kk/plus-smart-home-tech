@@ -70,7 +70,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
                             .scenario(scenario)
                             .sensor(sensor)
                             .condition(condition)
-                            .id(new ScenarioConditionId(scenario.getId(), sensor.getId(), condition.getId()))
+                            .id(new ScenarioConditionId(scenario.getId(), sensor.getId()))
                             .build());
 
             scenario.getConditions().add(scenarioCondition);
@@ -95,7 +95,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
                             .scenario(scenario)
                             .sensor(sensor)
                             .action(action)
-                            .id(new ScenarioActionId(scenario.getId(), sensor.getId(), action.getId()))
+                            .id(new ScenarioActionId(scenario.getId(), sensor.getId()))
                             .build());
 
             scenario.getActions().add(scenarioAction);
