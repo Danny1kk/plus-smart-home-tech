@@ -12,6 +12,8 @@ import jakarta.persistence.Table;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -36,9 +38,30 @@ public class Scenario {
     String name;
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    List<ScenarioCondition> conditions;
+    @Builder.Default
+    List<ScenarioCondition> conditions = new ArrayList<>();
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    Set<ScenarioAction> actions;
+    @Builder.Default
+    Set<ScenarioAction> actions = new HashSet<>();
 
+    public void setConditions(List<ScenarioCondition> conditions) {
+        this.conditions.clear();
+        if (conditions != null) {
+            conditions.forEach(c -> {
+                c.setScenario(this);
+                this.conditions.add(c);
+            });
+        }
+    }
+
+    public void setActions(Set<ScenarioAction> actions) {
+        this.actions.clear();
+        if (actions != null) {
+            actions.forEach(a -> {
+                a.setScenario(this);
+                this.actions.add(a);
+            });
+        }
+    }
 }
