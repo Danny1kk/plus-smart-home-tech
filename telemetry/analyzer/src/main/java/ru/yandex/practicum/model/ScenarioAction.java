@@ -7,13 +7,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.experimental.FieldDefaults;
 
 @Entity
 @Table(name = "scenario_actions")
@@ -24,20 +22,20 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 public class ScenarioAction {
     @EmbeddedId
-    ScenarioActionId id;
+    private ScenarioActionId id;
 
     @MapsId("scenarioId")
-    @JoinColumn(name = "scenario_id", insertable = false, updatable = false)
+    @JoinColumn(name = "scenario_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    Scenario scenario;
+    private Scenario scenario;
 
     @MapsId("sensorId")
-    @JoinColumn(name = "sensor_id", insertable = false, updatable = false)
+    @JoinColumn(name = "sensor_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    Sensor sensor;
+    private Sensor sensor;
 
     @MapsId("actionId")
-    @JoinColumn(name = "action_id", insertable = false, updatable = false)
+    @JoinColumn(name = "action_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    Action action;
+    private Action action;
 }

@@ -1,12 +1,6 @@
 package ru.yandex.practicum.model;
 
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,17 +19,17 @@ public class ScenarioCondition {
     ScenarioConditionId id;
 
     @MapsId("scenarioId")
-    @JoinColumn(name = "scenario_id", insertable = false, updatable = false)
+    @JoinColumn(name = "scenario_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    Scenario scenario;
+    private Scenario scenario;
 
     @MapsId("sensorId")
-    @JoinColumn(name = "sensor_id", insertable = false, updatable = false)
+    @JoinColumn(name = "sensor_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    Sensor sensor;
+    private Sensor sensor;
 
     @MapsId("conditionId")
-    @JoinColumn(name = "condition_id", insertable = false, updatable = false)
+    @JoinColumn(name = "condition_id")
     @ManyToOne(fetch = FetchType.LAZY)
-    Condition condition;
+    private Condition condition;
 }
