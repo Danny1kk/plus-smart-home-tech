@@ -21,6 +21,8 @@ import ru.yandex.practicum.repository.ScenarioConditionRepository;
 import ru.yandex.practicum.repository.ScenarioRepository;
 import ru.yandex.practicum.repository.SensorRepository;
 
+import java.util.HashSet;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -41,29 +43,29 @@ public class ScenarioAddedHandler implements HubEventHandler {
     @Transactional
     @Override
     public void handle(HubEventAvro hub) {
-        Scenario scenario = getScenario(hub);
-        removeExistingScenarioData(scenario);
+        ScenarioAddedEventAvro avro = getScenarioAddedAvro(hub);
+
+        scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
+                .ifPresent(existingScenario -> {
+                    scenarioRepository.delete(existingScenario);
+                    scenarioRepository.flush();
+                });
+
+        Scenario scenario = scenarioRepository.save(
+                Scenario.builder()
+                        .hubId(hub.getHubId())
+                        .name(avro.getName())
+                        .conditions(new HashSet<>())
+                        .actions(new HashSet<>())
+                        .build()
+        );
+
         processConditions(scenario, hub);
         processActions(scenario, hub);
     }
 
     private ScenarioAddedEventAvro getScenarioAddedAvro(HubEventAvro hub) {
         return (ScenarioAddedEventAvro) hub.getPayload();
-    }
-
-    private Scenario getScenario(HubEventAvro hub) {
-        ScenarioAddedEventAvro avro = getScenarioAddedAvro(hub);
-        return scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
-                .orElseGet(() -> scenarioRepository.save(
-                        Scenario.builder()
-                                .hubId(hub.getHubId())
-                                .name(avro.getName())
-                                .build()));
-    }
-
-    private void removeExistingScenarioData(Scenario scenario) {
-        scenarioActionRepository.deleteByScenario(scenario);
-        scenarioConditionRepository.deleteByScenario(scenario);
     }
 
     private void processActions(Scenario scenario, HubEventAvro hub) {
@@ -80,7 +82,8 @@ public class ScenarioAddedHandler implements HubEventHandler {
                             .type(aDto.getType())
                             .value(aDto.getValue())
                             .build());
-            scenarioActionRepository.save(
+
+            ScenarioAction scenarioAction = scenarioActionRepository.save(
                     ScenarioAction.builder()
                             .scenario(scenario)
                             .sensor(sensor)
@@ -90,6 +93,8 @@ public class ScenarioAddedHandler implements HubEventHandler {
                                     sensor.getId(),
                                     action.getId()))
                             .build());
+
+            scenario.getActions().add(scenarioAction);
         });
     }
 
@@ -108,7 +113,8 @@ public class ScenarioAddedHandler implements HubEventHandler {
                             .operation(cDto.getOperation())
                             .value(asInteger(cDto.getValue()))
                             .build());
-            scenarioConditionRepository.save(
+
+            ScenarioCondition scenarioCondition = scenarioConditionRepository.save(
                     ScenarioCondition.builder()
                             .scenario(scenario)
                             .sensor(sensor)
@@ -118,6 +124,8 @@ public class ScenarioAddedHandler implements HubEventHandler {
                                     sensor.getId(),
                                     condition.getId()))
                             .build());
+
+            scenario.getConditions().add(scenarioCondition);
         });
     }
 
