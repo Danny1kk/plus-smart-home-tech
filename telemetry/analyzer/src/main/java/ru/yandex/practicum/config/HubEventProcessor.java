@@ -86,7 +86,7 @@ public class HubEventProcessor implements Runnable {
                 scenarioCondition.setId(new ScenarioConditionId());
 
                 return scenarioCondition;
-            }).collect(Collectors.toSet());
+            }).collect(Collectors.toList());
 
             if (scenario.getConditions() == null) {
                 scenario.setConditions(conditions);

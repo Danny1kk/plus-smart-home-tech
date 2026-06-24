@@ -9,6 +9,7 @@ import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
 import ru.yandex.practicum.model.*;
 import ru.yandex.practicum.repository.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 
 @Slf4j
@@ -42,7 +43,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
                 Scenario.builder()
                         .hubId(hub.getHubId())
                         .name(avro.getName())
-                        .conditions(new HashSet<>())
+                        .conditions(new ArrayList<>())
                         .actions(new HashSet<>())
                         .build()
         );
