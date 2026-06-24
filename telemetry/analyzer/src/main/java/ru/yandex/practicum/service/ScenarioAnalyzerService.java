@@ -11,6 +11,7 @@ import ru.yandex.practicum.model.Scenario;
 import ru.yandex.practicum.model.ScenarioCondition;
 import ru.yandex.practicum.repository.ScenarioRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -29,10 +30,14 @@ public class ScenarioAnalyzerService {
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
 
         for (Scenario scenario : scenarios) {
+            if (scenario.getConditions() == null || scenario.getConditions().isEmpty()) {
+                continue;
+            }
+
             boolean allConditionsMatch = true;
 
             for (ScenarioCondition sc : scenario.getConditions()) {
-                SensorStateAvro actualState = sensorStates.get(sc.getSensor().getId());
+                SensorStateAvro actualState = sensorStates.get(sc.getId().getSensorId());
 
                 if (actualState == null || !matchCondition(sc, actualState)) {
                     allConditionsMatch = false;
@@ -48,7 +53,7 @@ public class ScenarioAnalyzerService {
                                 scenario.getName(),
                                 scenarioAction.getId().getSensorId(),
                                 scenarioAction.getAction(),
-                                snapshot.getTimestamp()
+                                Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
                         )
                 );
             }
@@ -65,16 +70,24 @@ public class ScenarioAnalyzerService {
             String className = data.getClass().getSimpleName();
             switch (className) {
                 case "ClimateSensorAvro":
-                    actualValue = ((Number) avroRecord.get("temperatureC")).intValue();
+                    if (avroRecord.get("temperature") != null) {
+                        actualValue = ((Number) avroRecord.get("temperature")).intValue();
+                    } else if (avroRecord.get("temperatureC") != null) {
+                        actualValue = ((Number) avroRecord.get("temperatureC")).intValue();
+                    } else {
+                        actualValue = ((Number) avroRecord.get("temperature_c")).intValue();
+                    }
                     break;
                 case "LightSensorAvro":
                     actualValue = ((Number) avroRecord.get("luminosity")).intValue();
                     break;
                 case "SwitchSensorAvro":
-                    actualValue = (Boolean) avroRecord.get("isOpen") ? 1 : 0;
+                    Object switchState = avroRecord.get("state") != null ? avroRecord.get("state") : avroRecord.get("isOpen");
+                    actualValue = (Boolean) switchState ? 1 : 0;
                     break;
                 case "MotionSensorAvro":
-                    actualValue = (Boolean) avroRecord.get("motionDetected") ? 1 : 0;
+                    Object motionState = avroRecord.get("motion") != null ? avroRecord.get("motion") : avroRecord.get("motionDetected");
+                    actualValue = (Boolean) motionState ? 1 : 0;
                     break;
                 default:
                     log.warn("Неизвестный тип Avro-данных датчика: {}", className);
