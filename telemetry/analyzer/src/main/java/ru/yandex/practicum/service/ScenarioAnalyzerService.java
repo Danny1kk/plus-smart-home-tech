@@ -26,23 +26,30 @@ public class ScenarioAnalyzerService {
         String hubId = snapshot.getHubId();
         Map<String, SensorStateAvro> sensorStates = snapshot.getSensorsState();
 
+        log.info("--- ANALYZE [DEBUG]: Хаб {} прислал датчики: {} ---", hubId, sensorStates.keySet());
+
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
+        log.info("--- ANALYZE [DEBUG]: В базе найдено {} сценариев для хаба {} ---", scenarios.size(), hubId);
 
         for (Scenario scenario : scenarios) {
-            if (scenario.getConditions() == null || scenario.getConditions().isEmpty()) continue;
+            log.info("--- ANALYZE [DEBUG]: Проверка сценария '{}', условий: {} ---", scenario.getName(), scenario.getConditions().size());
 
             boolean allConditionsMatch = true;
-            for (ScenarioCondition sc : scenario.getConditions()) {
-                SensorStateAvro actualState = sensorStates.get(sc.getId().getSensorId());
 
-                if (actualState == null || !matchCondition(sc, actualState)) {
+            for (ScenarioCondition sc : scenario.getConditions()) {
+                String dbId = sc.getId().getSensorId();
+                SensorStateAvro state = sensorStates.get(dbId);
+
+                log.info("--- ANALYZE [DEBUG]: Датчик сценария ID='{}' | Найден в снапшоте? {} ---", dbId, (state != null));
+
+                if (state == null || !matchCondition(sc, state)) {
                     allConditionsMatch = false;
                     break;
                 }
             }
 
-            if (allConditionsMatch) {
-                log.info("Сценарий '{}' сработал! Отправка команд...", scenario.getName());
+            if (allConditionsMatch && !scenario.getConditions().isEmpty()) {
+                log.info("[DEBUG] Сценарий {} ВЫПОЛНЕН! Отправляем сигнал", scenario.getName());
                 scenario.getActions().forEach(action ->
                         routerClient.sendAction(
                                 hubId,
@@ -58,32 +65,27 @@ public class ScenarioAnalyzerService {
 
     private boolean matchCondition(ScenarioCondition sc, SensorStateAvro state) {
         Object data = state.getData();
-        if (!(data instanceof org.apache.avro.specific.SpecificRecordBase)) {
-            log.warn("Данные не являются Avro записью для датчика {}", sc.getId().getSensorId());
+        if (!(data instanceof org.apache.avro.specific.SpecificRecordBase record)) {
+            log.warn("Неизвестный формат данных для датчика {}", sc.getId().getSensorId());
             return false;
         }
 
-        org.apache.avro.specific.SpecificRecordBase record = (org.apache.avro.specific.SpecificRecordBase) data;
-        Integer actualValue = null;
+        Object value = null;
+        String[] possibleFields = {"temperature", "temperatureC", "luminosity", "state", "isOpen", "motion", "motionDetected"};
 
-        log.debug("Анализ датчика {}: запись {}", sc.getId().getSensorId(), record);
-
-        for (org.apache.avro.Schema.Field field : record.getSchema().getFields()) {
-            Object val = record.get(field.name());
-            if (val instanceof Number) {
-                actualValue = ((Number) val).intValue();
-                break;
-            } else if (val instanceof Boolean) {
-                actualValue = (Boolean) val ? 1 : 0;
-                break;
-            }
+        for (String field : possibleFields) {
+            try {
+                value = record.get(field);
+                if (value != null) break;
+            } catch (Exception ignored) {}
         }
 
-        if (actualValue == null) {
-            log.warn("Не удалось извлечь значение из датчика {}", sc.getId().getSensorId());
+        if (value == null) {
+            log.warn("Значение не найдено для датчика {}. Доступные поля: {}", sc.getId().getSensorId(), record.getSchema().getFields());
             return false;
         }
 
+        int actualValue = (value instanceof Boolean b) ? (b ? 1 : 0) : ((Number) value).intValue();
         int target = sc.getCondition().getValue();
         boolean result = switch (sc.getCondition().getOperation()) {
             case EQUALS -> actualValue == target;
@@ -91,8 +93,7 @@ public class ScenarioAnalyzerService {
             case LOWER_THAN -> actualValue < target;
         };
 
-        log.info("Проверка условия: датчик={}, значение={}, цель={}, результат={}",
-                sc.getId().getSensorId(), actualValue, target, result);
+        log.info("DEBUG: Датчик {} | Получено: {} | Цель: {} | Результат: {}", sc.getId().getSensorId(), actualValue, target, result);
         return result;
     }
 }
