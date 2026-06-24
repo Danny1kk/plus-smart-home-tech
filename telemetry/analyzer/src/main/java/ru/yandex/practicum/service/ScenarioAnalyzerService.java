@@ -26,30 +26,34 @@ public class ScenarioAnalyzerService {
         String hubId = snapshot.getHubId();
         Map<String, SensorStateAvro> sensorStates = snapshot.getSensorsState();
 
-        log.info("--- ANALYZE [DEBUG]: Хаб {} прислал датчики: {} ---", hubId, sensorStates.keySet());
+        log.info("--- [DEBUG] ANALYZE: Хаб {} прислал датчики: {} ---", hubId, sensorStates.keySet());
 
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
-        log.info("--- ANALYZE [DEBUG]: В базе найдено {} сценариев для хаба {} ---", scenarios.size(), hubId);
+        log.info("--- [DEBUG] ANALYZE: В базе найдено {} сценариев для хаба {} ---", scenarios.size(), hubId);
 
         for (Scenario scenario : scenarios) {
-            log.info("--- ANALYZE [DEBUG]: Проверка сценария '{}', условий: {} ---", scenario.getName(), scenario.getConditions().size());
-
             boolean allConditionsMatch = true;
 
             for (ScenarioCondition sc : scenario.getConditions()) {
                 String dbId = sc.getId().getSensorId();
                 SensorStateAvro state = sensorStates.get(dbId);
 
-                log.info("--- ANALYZE [DEBUG]: Датчик сценария ID='{}' | Найден в снапшоте? {} ---", dbId, (state != null));
+                if (state == null) {
+                    log.info("--- [DEBUG] Датчик сценария ID='{}' НЕ НАЙДЕН в снапшоте ---", dbId);
+                    allConditionsMatch = false;
+                    break;
+                }
 
-                if (state == null || !matchCondition(sc, state)) {
+                // Проверяем само условие
+                if (!matchCondition(sc, state)) {
+                    log.info("--- [DEBUG] Условие для датчика '{}' НЕ ВЫПОЛНЕНО ---", dbId);
                     allConditionsMatch = false;
                     break;
                 }
             }
 
             if (allConditionsMatch && !scenario.getConditions().isEmpty()) {
-                log.info("[DEBUG] Сценарий {} ВЫПОЛНЕН! Отправляем сигнал", scenario.getName());
+                log.info("--- [DEBUG] Сценарий '{}' ВЫПОЛНЕН! Отправляем сигнал ---", scenario.getName());
                 scenario.getActions().forEach(action ->
                         routerClient.sendAction(
                                 hubId,
