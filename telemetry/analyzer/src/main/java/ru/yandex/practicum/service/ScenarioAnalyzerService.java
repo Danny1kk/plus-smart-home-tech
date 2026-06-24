@@ -55,7 +55,7 @@ public class ScenarioAnalyzerService {
             }
 
             if (allConditionsMatch && !scenario.getConditions().isEmpty()) {
-                log.info("!!! [СЦЕНАРИЙ СРАБОТАЛ]: отправляем gRPC-действие !!!");
+                log.info("Сценарий '{}' сработал! Отправляем gRPC действия.", scenario.getName());
                 scenario.getActions().forEach(action ->
                         routerClient.sendAction(
                                 hubId,
@@ -87,7 +87,7 @@ public class ScenarioAnalyzerService {
         }
 
         if (value == null) {
-            log.warn("Значение не найдено для датчика {}. Доступные поля: {}", sc.getId().getSensorId(), record.getSchema().getFields());
+            log.warn("Значение не найдено для датчика {}", sc.getId().getSensorId());
             return false;
         }
 
@@ -106,7 +106,7 @@ public class ScenarioAnalyzerService {
                 try {
                     actualValue = Integer.parseInt(strValue);
                 } catch (NumberFormatException e) {
-                    log.warn("Не удалось преобразовать строковое значение '{}' к числу", strValue);
+                    log.warn("Не удалось распарсить значение '{}' в число", strValue);
                     return false;
                 }
             }
@@ -119,7 +119,8 @@ public class ScenarioAnalyzerService {
             case LOWER_THAN -> actualValue < target;
         };
 
-        log.info("DEBUG: Датчик {} | Извлечено: {} | Цель: {} | Результат: {}", sc.getId().getSensorId(), actualValue, target, result);
+        log.info("DEBUG: Датчик {} | Извлечено: {} | Ожидалось: {} | Итог: {}",
+                sc.getId().getSensorId(), actualValue, target, result);
         return result;
     }
 
