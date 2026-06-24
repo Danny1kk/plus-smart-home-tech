@@ -21,41 +21,33 @@ public class ScenarioAnalyzerService {
 
     private final ScenarioRepository scenarioRepository;
     private final HubRouterClient routerClient;
-
+    
     public void analyze(SensorsSnapshotAvro snapshot) {
         String hubId = snapshot.getHubId();
-        Map<String, SensorStateAvro> sensorStates = snapshot.getSensorsState();
-
-        log.info("--- [DEBUG] ANALYZE: Хаб {} прислал датчики: {} ---", hubId, sensorStates.keySet());
-
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
-        log.info("--- [DEBUG] ANALYZE: В базе найдено {} сценариев для хаба {} ---", scenarios.size(), hubId);
+        log.info("Найдено {} сценариев для хаба {}", scenarios.size(), hubId);
+
+        Map<String, SensorStateAvro> sensorStates = snapshot.getSensorsState();
 
         for (Scenario scenario : scenarios) {
             boolean allConditionsMatch = true;
-            log.info("=== [АНАЛИЗ СЦЕНАРИЯ]: '{}' ===", scenario.getName());
+
+            if (scenario.getConditions() == null || scenario.getConditions().isEmpty()) {
+                continue;
+            }
 
             for (ScenarioCondition sc : scenario.getConditions()) {
                 String sensorId = sc.getId().getSensorId();
                 SensorStateAvro state = sensorStates.get(sensorId);
 
-                if (state == null) {
-                    log.info("-> Датчик '{}' из сценария отсутствует в текущем снапшоте", sensorId);
-                    allConditionsMatch = false;
-                    break;
-                }
-
-                boolean matched = matchCondition(sc, state);
-                log.info("-> Датчик '{}': условие выполнено? {}", sensorId, matched);
-
-                if (!matched) {
+                if (state == null || !matchCondition(sc, state)) {
                     allConditionsMatch = false;
                     break;
                 }
             }
 
-            if (allConditionsMatch && !scenario.getConditions().isEmpty()) {
-                log.info("Сценарий '{}' сработал! Отправляем gRPC действия.", scenario.getName());
+            if (allConditionsMatch) {
+                log.info("Сценарий '{}' полностью совпал! Отправляем gRPC-действия.", scenario.getName());
                 scenario.getActions().forEach(action ->
                         routerClient.sendAction(
                                 hubId,
@@ -123,7 +115,7 @@ public class ScenarioAnalyzerService {
                 sc.getId().getSensorId(), actualValue, target, result);
         return result;
     }
-
+}
 //    private boolean matchCondition(ScenarioCondition sc, SensorStateAvro state) {
 //        Object data = state.getData();
 //        if (!(data instanceof org.apache.avro.specific.SpecificRecordBase record)) {
@@ -178,4 +170,3 @@ public class ScenarioAnalyzerService {
 //                sc.getId().getSensorId(), actualValue, target, sc.getCondition().getOperation(), result);
 //        return result;
 //    }
-}
