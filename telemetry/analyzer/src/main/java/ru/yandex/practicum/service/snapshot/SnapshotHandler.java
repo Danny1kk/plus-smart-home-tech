@@ -34,35 +34,38 @@ public class SnapshotHandler {
 
     @Transactional(readOnly = true)
     public void handle(SensorsSnapshotAvro sensorsSnapshotAvro) {
+        String hubId = sensorsSnapshotAvro.getHubId();
         Map<String, SensorStateAvro> sensorStateMap = sensorsSnapshotAvro.getSensorsState();
 
-        List<Scenario> scenariosList = scenarioRepository.findByHubId(sensorsSnapshotAvro.getHubId());
+        List<Scenario> scenariosList = scenarioRepository.findByHubId(hubId);
 
-        scenariosList.stream()
-                .filter(scenario -> handleScenario(scenario, sensorStateMap))
-                .forEach(scenario -> {
-                    log.info("Отправка ДЕЙСТВИЯ для сценария {}", scenario.getName());
-                    sendScenarioAction(scenario, sensorsSnapshotAvro);
-                });
+        scenariosList.forEach(scenario -> {
+            log.info("Анализ сценария '{}'. Количество условий: {}", scenario.getName(),
+                    scenario.getConditions() != null ? scenario.getConditions().size() : 0);
+
+            if (handleScenario(scenario, sensorStateMap)) {
+                log.info("Все условия выполнены! Отправка ДЕЙСТВИЯ для сценария: {}", scenario.getName());
+                sendScenarioAction(scenario, sensorsSnapshotAvro);
+            }
+        });
     }
 
     private void sendScenarioAction(Scenario scenario, SensorsSnapshotAvro snapshot) {
-        scenario.getActions().forEach(scenarioAction ->
-                routerClient.sendAction(
-                        snapshot.getHubId(),
-                        scenario.getName(),
-                        scenarioAction.getId().getSensorId(),
-                        scenarioAction.getAction(),
-                        Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
-                )
-        );
+        scenario.getActions().forEach(scenarioAction -> {
+            log.info("gRPC: Отправка команды на устройство {} в рамках сценария {}",
+                    scenarioAction.getId().getSensorId(), scenario.getName());
+            routerClient.sendAction(
+                    snapshot.getHubId(),
+                    scenario.getName(),
+                    scenarioAction.getId().getSensorId(),
+                    scenarioAction.getAction(),
+                    Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
+            );
+        });
     }
 
     private boolean handleScenario(Scenario scenario, Map<String, SensorStateAvro> sensorStateMap) {
         List<ScenarioCondition> scenarioConditions = scenario.getConditions();
-
-        log.info("Получили СПИСОК условий {} у сценария name = {}",
-                scenarioConditions != null ? scenarioConditions.size() : 0, scenario.getName());
 
         if (scenarioConditions == null || scenarioConditions.isEmpty()) {
             return false;
@@ -76,10 +79,19 @@ public class SnapshotHandler {
 
     private boolean handleOperation(Condition condition, Integer currentValue) {
         Integer targetValue = condition.getValue();
-        return switch (condition.getOperation()) {
-            case EQUALS -> targetValue.equals(currentValue);
-            case GREATER_THAN -> currentValue > targetValue;
-            case LOWER_THAN -> currentValue < targetValue;
+        if (condition.getOperation() == null || currentValue == null) {
+            return false;
+        }
+
+        String opName = condition.getOperation().name();
+        return switch (opName) {
+            case "EQUALS" -> targetValue.equals(currentValue);
+            case "GREATER_THAN" -> currentValue > targetValue;
+            case "LOWER_THAN" -> currentValue < targetValue;
+            default -> {
+                log.warn("Неизвестная операция: {}", opName);
+                yield false;
+            }
         };
     }
 
@@ -90,31 +102,43 @@ public class SnapshotHandler {
         if (sensorState == null) {
             return false;
         }
-        return switch (condition.getType()) {
-            case MOTION -> {
+
+        if (condition.getType() == null) {
+            return false;
+        }
+
+        String typeName = condition.getType().name();
+        boolean result = switch (typeName) {
+            case "MOTION" -> {
                 MotionSensorAvro motion = (MotionSensorAvro) sensorState.getData();
                 yield handleOperation(condition, motion.getMotion() ? 1 : 0);
             }
-            case LUMINOSITY -> {
+            case "LUMINOSITY" -> {
                 LightSensorAvro light = (LightSensorAvro) sensorState.getData();
                 yield handleOperation(condition, light.getLuminosity());
             }
-            case SWITCH -> {
+            case "SWITCH" -> {
                 SwitchSensorAvro sw = (SwitchSensorAvro) sensorState.getData();
                 yield handleOperation(condition, sw.getState() ? 1 : 0);
             }
-            case TEMPERATURE -> {
+            case "TEMPERATURE" -> {
                 ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
                 yield handleOperation(condition, climate.getTemperatureC());
             }
-            case CO2LEVEL -> {
+            case "CO2LEVEL" -> {
                 ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
                 yield handleOperation(condition, climate.getCo2Level());
             }
-            case HUMIDITY -> {
+            case "HUMIDITY" -> {
                 ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
                 yield handleOperation(condition, climate.getHumidity());
             }
+            default -> false;
         };
+
+        log.info("Проверяю условие датчика {}: тип={}, операция={}, эталон={}, текущее={}. Результат: {}",
+                sensorId, typeName, condition.getOperation(), condition.getValue(), sensorState.getData(), result);
+
+        return result;
     }
 }
