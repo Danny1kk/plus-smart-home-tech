@@ -70,7 +70,7 @@ public class SnapshotHandler {
 
         return scenarioConditions.stream()
                 .allMatch(sc -> checkCondition(sc.getCondition(),
-                        sc.getId().getSensorId(),
+                        sc.getSensor().getId(),
                         sensorStateMap));
     }
 
