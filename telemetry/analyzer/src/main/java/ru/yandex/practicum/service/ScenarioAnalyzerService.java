@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.client.HubRouterClient;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorStateAvro;
-import ru.yandex.practicum.kafka.telemetry.event.ConditionOperationAvro;
 import ru.yandex.practicum.model.Scenario;
 import ru.yandex.practicum.model.ScenarioCondition;
 import ru.yandex.practicum.repository.ScenarioRepository;
@@ -30,12 +29,9 @@ public class ScenarioAnalyzerService {
         List<Scenario> scenarios = scenarioRepository.findByHubId(hubId);
 
         for (Scenario scenario : scenarios) {
-            if (scenario.getConditions() == null || scenario.getConditions().isEmpty()) {
-                continue;
-            }
+            if (scenario.getConditions() == null || scenario.getConditions().isEmpty()) continue;
 
             boolean allConditionsMatch = true;
-
             for (ScenarioCondition sc : scenario.getConditions()) {
                 SensorStateAvro actualState = sensorStates.get(sc.getId().getSensorId());
 
@@ -45,14 +41,14 @@ public class ScenarioAnalyzerService {
                 }
             }
 
-            if (allConditionsMatch && !scenario.getActions().isEmpty()) {
-                log.info("Все условия сценария '{}' выполнены. Запуск действий...", scenario.getName());
-                scenario.getActions().forEach(scenarioAction ->
+            if (allConditionsMatch) {
+                log.info("Сценарий '{}' сработал! Отправка команд...", scenario.getName());
+                scenario.getActions().forEach(action ->
                         routerClient.sendAction(
-                                snapshot.getHubId(),
+                                hubId,
                                 scenario.getName(),
-                                scenarioAction.getId().getSensorId(),
-                                scenarioAction.getAction(),
+                                action.getId().getSensorId(),
+                                action.getAction(),
                                 Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
                         )
                 );
@@ -62,52 +58,27 @@ public class ScenarioAnalyzerService {
 
     private boolean matchCondition(ScenarioCondition sc, SensorStateAvro state) {
         Object data = state.getData();
-        int actualValue;
+        Integer actualValue = null;
 
         if (data instanceof org.apache.avro.specific.SpecificRecordBase) {
-            org.apache.avro.specific.SpecificRecordBase avroRecord = (org.apache.avro.specific.SpecificRecordBase) data;
+            org.apache.avro.specific.SpecificRecordBase record = (org.apache.avro.specific.SpecificRecordBase) data;
 
-            String className = data.getClass().getSimpleName();
-            switch (className) {
-                case "ClimateSensorAvro":
-                    if (avroRecord.get("temperature") != null) {
-                        actualValue = ((Number) avroRecord.get("temperature")).intValue();
-                    } else if (avroRecord.get("temperatureC") != null) {
-                        actualValue = ((Number) avroRecord.get("temperatureC")).intValue();
-                    } else {
-                        actualValue = ((Number) avroRecord.get("temperature_c")).intValue();
-                    }
-                    break;
-                case "LightSensorAvro":
-                    actualValue = ((Number) avroRecord.get("luminosity")).intValue();
-                    break;
-                case "SwitchSensorAvro":
-                    Object switchState = avroRecord.get("state") != null ? avroRecord.get("state") : avroRecord.get("isOpen");
-                    actualValue = (Boolean) switchState ? 1 : 0;
-                    break;
-                case "MotionSensorAvro":
-                    Object motionState = avroRecord.get("motion") != null ? avroRecord.get("motion") : avroRecord.get("motionDetected");
-                    actualValue = (Boolean) motionState ? 1 : 0;
-                    break;
-                default:
-                    log.warn("Неизвестный тип Avro-данных датчика: {}", className);
-                    return false;
-            }
-        } else {
-            log.warn("Данные датчика не являются Avro-записью: {}", data != null ? data.getClass().getName() : "null");
-            return false;
+            if (record.getSchema().getField("temperature") != null) actualValue = ((Number) record.get("temperature")).intValue();
+            else if (record.getSchema().getField("temperatureC") != null) actualValue = ((Number) record.get("temperatureC")).intValue();
+            else if (record.getSchema().getField("luminosity") != null) actualValue = ((Number) record.get("luminosity")).intValue();
+            else if (record.getSchema().getField("state") != null) actualValue = (Boolean) record.get("state") ? 1 : 0;
+            else if (record.getSchema().getField("isOpen") != null) actualValue = (Boolean) record.get("isOpen") ? 1 : 0;
+            else if (record.getSchema().getField("motion") != null) actualValue = (Boolean) record.get("motion") ? 1 : 0;
+            else if (record.getSchema().getField("motionDetected") != null) actualValue = (Boolean) record.get("motionDetected") ? 1 : 0;
         }
 
-        int targetValue = sc.getCondition().getValue();
-        ConditionOperationAvro op = sc.getCondition().getOperation();
+        if (actualValue == null) return false;
 
-        if (op == ConditionOperationAvro.EQUALS) {
-            return actualValue == targetValue;
-        } else if (op == ConditionOperationAvro.GREATER_THAN) {
-            return actualValue > targetValue;
-        } else if (op == ConditionOperationAvro.LOWER_THAN) {
-            return actualValue < targetValue;
-        }
-        return false;
+        int target = sc.getCondition().getValue();
+        return switch (sc.getCondition().getOperation()) {
+            case EQUALS -> actualValue == target;
+            case GREATER_THAN -> actualValue > target;
+            case LOWER_THAN -> actualValue < target;
+        };
     }
 }
