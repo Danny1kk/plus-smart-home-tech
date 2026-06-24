@@ -9,9 +9,6 @@ import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
 import ru.yandex.practicum.model.*;
 import ru.yandex.practicum.repository.*;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -35,21 +32,22 @@ public class ScenarioAddedHandler implements HubEventHandler {
         ScenarioAddedEventAvro avro = (ScenarioAddedEventAvro) hub.getPayload();
 
         scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
-                .ifPresent(scenarioRepository::delete);
+                .ifPresent(s -> {
+                    scenarioRepository.delete(s);
+                    scenarioRepository.flush();
+                });
 
-        scenarioRepository.flush();
+        Scenario scenario = Scenario.builder()
+                .hubId(hub.getHubId())
+                .name(avro.getName())
+                .build();
 
-        Scenario scenario = scenarioRepository.save(
-                Scenario.builder()
-                        .hubId(hub.getHubId())
-                        .name(avro.getName())
-                        .conditions(new ArrayList<>())
-                        .actions(new HashSet<>())
-                        .build()
-        );
+        scenario = scenarioRepository.save(scenario);
 
         processConditions(scenario, avro, hub.getHubId());
         processActions(scenario, avro, hub.getHubId());
+
+        scenarioRepository.save(scenario);
 
         log.info("Сценарий '{}' для хаба {} успешно сохранен.", avro.getName(), hub.getHubId());
     }
