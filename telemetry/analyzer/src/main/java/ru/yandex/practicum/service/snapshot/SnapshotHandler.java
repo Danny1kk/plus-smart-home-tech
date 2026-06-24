@@ -63,9 +63,13 @@ public class SnapshotHandler {
         log.info("Получили СПИСОК условий {} у сценария name = {}",
                 scenarioConditions.size(), scenario.getName());
 
+        if (scenarioConditions.isEmpty()) {
+            return false;
+        }
+
         return scenarioConditions.stream()
-                .noneMatch(sc -> !checkCondition(sc.getCondition(),
-                        sc.getSensor().getId(),
+                .allMatch(sc -> checkCondition(sc.getCondition(),
+                        sc.getId().getSensorId(),
                         sensorStateMap));
     }
 
