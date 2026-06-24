@@ -33,26 +33,29 @@ public class ScenarioAnalyzerService {
 
         for (Scenario scenario : scenarios) {
             boolean allConditionsMatch = true;
+            log.info("=== [АНАЛИЗ СЦЕНАРИЯ]: '{}' ===", scenario.getName());
 
             for (ScenarioCondition sc : scenario.getConditions()) {
-                String dbId = sc.getId().getSensorId();
-                SensorStateAvro state = sensorStates.get(dbId);
+                String sensorId = sc.getId().getSensorId();
+                SensorStateAvro state = sensorStates.get(sensorId);
 
                 if (state == null) {
-                    log.info("--- [DEBUG] Датчик сценария ID='{}' НЕ НАЙДЕН в снапшоте ---", dbId);
+                    log.info("-> Датчик '{}' из сценария отсутствует в текущем снапшоте", sensorId);
                     allConditionsMatch = false;
                     break;
                 }
 
-                if (!matchCondition(sc, state)) {
-                    log.info("--- [DEBUG] Условие для датчика '{}' НЕ ВЫПОЛНЕНО ---", dbId);
+                boolean matched = matchCondition(sc, state);
+                log.info("-> Датчик '{}': условие выполнено? {}", sensorId, matched);
+
+                if (!matched) {
                     allConditionsMatch = false;
                     break;
                 }
             }
 
             if (allConditionsMatch && !scenario.getConditions().isEmpty()) {
-                log.info("[DEBUG] Сценарий {} ВЫПОЛНЕН! Отправляем сигнал", scenario.getName());
+                log.info("!!! [СЦЕНАРИЙ СРАБОТАЛ]: отправляем gRPC-действие !!!");
                 scenario.getActions().forEach(action ->
                         routerClient.sendAction(
                                 hubId,
