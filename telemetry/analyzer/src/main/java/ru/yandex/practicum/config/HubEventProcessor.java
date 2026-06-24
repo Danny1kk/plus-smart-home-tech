@@ -83,17 +83,11 @@ public class HubEventProcessor implements Runnable {
                 scenarioCondition.setScenario(scenario);
                 scenarioCondition.setCondition(baseCondition);
                 scenarioCondition.setSensor(sensor);
-                scenarioCondition.setId(new ScenarioConditionId());
 
                 return scenarioCondition;
             }).collect(Collectors.toList());
 
-            if (scenario.getConditions() == null) {
-                scenario.setConditions(conditions);
-            } else {
-                scenario.getConditions().clear();
-                scenario.getConditions().addAll(conditions);
-            }
+            scenario.setConditions(conditions);
 
             var actions = addedEvent.getActions().stream().map(avro -> {
                 Action baseAction = new Action();
@@ -113,17 +107,11 @@ public class HubEventProcessor implements Runnable {
                 scenarioAction.setScenario(scenario);
                 scenarioAction.setAction(baseAction);
                 scenarioAction.setSensor(sensor);
-                scenarioAction.setId(new ScenarioActionId());
 
                 return scenarioAction;
             }).collect(Collectors.toSet());
 
-            if (scenario.getActions() == null) {
-                scenario.setActions(actions);
-            } else {
-                scenario.getActions().clear();
-                scenario.getActions().addAll(actions);
-            }
+            scenario.setActions(actions);
 
             scenarioRepository.save(scenario);
             log.info("Сценарий успешно сохранен или обновлен: '{}' для хаба {}", scenario.getName(), hubId);

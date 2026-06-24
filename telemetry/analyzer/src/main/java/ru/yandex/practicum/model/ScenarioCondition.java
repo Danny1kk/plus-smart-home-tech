@@ -16,7 +16,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ScenarioCondition {
     @EmbeddedId
-    ScenarioConditionId id;
+    ScenarioConditionId id = new ScenarioConditionId();
 
     @MapsId("scenarioId")
     @JoinColumn(name = "scenario_id")
@@ -25,11 +25,9 @@ public class ScenarioCondition {
 
     @MapsId("sensorId")
     @JoinColumn(name = "sensor_id")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     private Sensor sensor;
 
-    @MapsId("conditionId")
-    @JoinColumn(name = "condition_id")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @Embedded
     private Condition condition;
 }

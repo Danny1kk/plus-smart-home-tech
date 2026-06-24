@@ -1,12 +1,6 @@
 package ru.yandex.practicum.model;
 
-import jakarta.persistence.EmbeddedId;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MapsId;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,7 +16,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ScenarioAction {
     @EmbeddedId
-    private ScenarioActionId id;
+    private ScenarioActionId id = new ScenarioActionId();
 
     @MapsId("scenarioId")
     @JoinColumn(name = "scenario_id")
@@ -31,11 +25,9 @@ public class ScenarioAction {
 
     @MapsId("sensorId")
     @JoinColumn(name = "sensor_id")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     private Sensor sensor;
 
-    @MapsId("actionId")
-    @JoinColumn(name = "action_id")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @Embedded
     private Action action;
 }
