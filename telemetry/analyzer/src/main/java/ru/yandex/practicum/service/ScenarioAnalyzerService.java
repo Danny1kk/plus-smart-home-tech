@@ -44,10 +44,11 @@ public class ScenarioAnalyzerService {
                 log.info("Все условия сценария '{}' выполнены. Запуск действий...", scenario.getName());
                 scenario.getActions().forEach(scenarioAction ->
                         routerClient.sendAction(
-                                hubId,
+                                snapshot.getHubId(),
                                 scenario.getName(),
+                                scenarioAction.getId().getSensorId(),
                                 scenarioAction.getAction(),
-                                java.time.Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
+                                snapshot.getTimestamp()
                         )
                 );
             }
