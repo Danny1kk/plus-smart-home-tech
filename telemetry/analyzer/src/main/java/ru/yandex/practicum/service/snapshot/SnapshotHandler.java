@@ -14,8 +14,6 @@ import ru.yandex.practicum.kafka.telemetry.event.SwitchSensorAvro;
 import ru.yandex.practicum.model.Condition;
 import ru.yandex.practicum.model.Scenario;
 import ru.yandex.practicum.model.ScenarioCondition;
-import ru.yandex.practicum.repository.ScenarioActionRepository;
-import ru.yandex.practicum.repository.ScenarioConditionRepository;
 import ru.yandex.practicum.repository.ScenarioRepository;
 
 import java.time.Instant;
@@ -28,24 +26,34 @@ import java.util.Map;
 public class SnapshotHandler {
 
     private final ScenarioRepository scenarioRepository;
-    private final ScenarioConditionRepository scenarioConditionRepository;
-    private final ScenarioActionRepository scenarioActionRepository;
     private final HubRouterClient routerClient;
 
     @Transactional(readOnly = true)
     public void handle(SensorsSnapshotAvro sensorsSnapshotAvro) {
         String hubId = sensorsSnapshotAvro.getHubId();
-        Map<String, SensorStateAvro> sensorStateMap = sensorsSnapshotAvro.getSensorsState();
 
         List<Scenario> scenariosList = scenarioRepository.findByHubId(hubId);
 
+        log.info("DEBUG_LOG: Анализатор получил снапшот для хаба '{}'. Найдено сценариев в БД: {}",
+                hubId, (scenariosList != null ? scenariosList.size() : "NULL"));
+
+        if (scenariosList == null || scenariosList.isEmpty()) {
+            log.info("DEBUG_LOG: Сценарии не найдены, прекращаю анализ для хаба '{}'", hubId);
+            return;
+        }
+
+        Map<String, SensorStateAvro> sensorStateMap = sensorsSnapshotAvro.getSensorsState();
+
         scenariosList.forEach(scenario -> {
-            log.info("Анализ сценария '{}'. Количество условий: {}", scenario.getName(),
-                    scenario.getConditions() != null ? scenario.getConditions().size() : 0);
+            log.info("DEBUG_LOG: Проверяю сценарий '{}'. Условий в БД: {}",
+                    scenario.getName(),
+                    (scenario.getConditions() != null ? scenario.getConditions().size() : "NULL"));
 
             if (handleScenario(scenario, sensorStateMap)) {
-                log.info("Все условия выполнены! Отправка ДЕЙСТВИЯ для сценария: {}", scenario.getName());
+                log.info("DEBUG_LOG: !!! УСЛОВИЯ СЦЕНАРИЯ '{}' ВЫПОЛНЕНЫ !!!", scenario.getName());
                 sendScenarioAction(scenario, sensorsSnapshotAvro);
+            } else {
+                log.info("DEBUG_LOG: Условия сценария '{}' НЕ выполнены", scenario.getName());
             }
         });
     }

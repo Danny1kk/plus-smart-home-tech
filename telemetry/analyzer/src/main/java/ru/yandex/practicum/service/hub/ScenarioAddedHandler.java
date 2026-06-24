@@ -30,6 +30,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
     @Override
     public void handle(HubEventAvro hub) {
         ScenarioAddedEventAvro avro = (ScenarioAddedEventAvro) hub.getPayload();
+        log.info("DEBUG: Пытаюсь сохранить сценарий {} для хаба {}", avro.getName(), hub.getHubId());
 
         scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
                 .ifPresent(s -> {
@@ -37,18 +38,16 @@ public class ScenarioAddedHandler implements HubEventHandler {
                     scenarioRepository.flush();
                 });
 
-        Scenario scenario = Scenario.builder()
+        Scenario scenario = scenarioRepository.save(Scenario.builder()
                 .hubId(hub.getHubId())
                 .name(avro.getName())
-                .build();
-
-        scenario = scenarioRepository.save(scenario);
+                .build());
 
         processConditions(scenario, avro, hub.getHubId());
         processActions(scenario, avro, hub.getHubId());
 
         scenarioRepository.save(scenario);
-
+        log.info("DEBUG: Сценарий сохранен в базу");
         log.info("Сценарий '{}' для хаба {} успешно сохранен.", avro.getName(), hub.getHubId());
     }
 

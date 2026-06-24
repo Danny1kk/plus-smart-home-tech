@@ -1,5 +1,6 @@
 package ru.yandex.practicum.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -41,5 +42,13 @@ public class SnapshotProcessor implements Runnable {
         } finally {
             snapshotConsumer.close();
         }
+    }
+
+    private final Thread thread = new Thread(this);
+
+    @PostConstruct
+    public void start() {
+        thread.start();
+        log.info("Поток SnapshotProcessor запущен через @PostConstruct");
     }
 }
