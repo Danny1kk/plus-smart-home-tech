@@ -51,6 +51,7 @@ public class SnapshotHandler {
                 routerClient.sendAction(
                         snapshot.getHubId(),
                         scenario.getName(),
+                        scenarioAction.getId().getSensorId(),
                         scenarioAction.getAction(),
                         Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
                 )
@@ -59,7 +60,8 @@ public class SnapshotHandler {
 
     private boolean handleScenario(Scenario scenario, Map<String, SensorStateAvro> sensorStateMap) {
         List<ScenarioCondition> scenarioConditions =
-                scenarioConditionRepository.findByScenario(scenario);
+                scenarioConditionRepository.findByScenarioId(scenario.getId());
+
         log.info("Получили СПИСОК условий {} у сценария name = {}",
                 scenarioConditions.size(), scenario.getName());
 

@@ -15,7 +15,7 @@ public class HubRouterClient {
     @GrpcClient("hub-router")
     private HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterStub;
 
-    public void sendAction(String hubId, String scenarioName, Action action, Instant timestamp) {
+    public void sendAction(String hubId, String scenarioName, String sensorId, Action action, Instant timestamp) {
         ActionTypeProto protoType = ActionTypeProto.valueOf(action.getType().name());
 
         DeviceActionRequest request = DeviceActionRequest.newBuilder()
@@ -28,7 +28,7 @@ public class HubRouterClient {
                 .setAction(ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto.newBuilder()
                         .setType(protoType)
                         .setValue(action.getValue())
-                        .setSensorId(action.getId().toString())
+                        .setSensorId(sensorId)
                         .build())
                 .build();
 
