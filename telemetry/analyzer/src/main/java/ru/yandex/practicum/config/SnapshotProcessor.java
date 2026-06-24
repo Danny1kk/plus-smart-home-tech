@@ -8,7 +8,7 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
-import ru.yandex.practicum.service.ScenarioAnalyzerService;
+import ru.yandex.practicum.service.snapshot.SnapshotHandler;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -18,7 +18,7 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class SnapshotProcessor {
     private final KafkaConsumer<String, SensorsSnapshotAvro> snapshotConsumer;
-    private final ScenarioAnalyzerService scenarioAnalyzerService;
+    private final SnapshotHandler snapshotHandler;
 
     public void start() {
         try {
@@ -29,7 +29,7 @@ public class SnapshotProcessor {
                 ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofMillis(1000));
                 for (ConsumerRecord<String, SensorsSnapshotAvro> record : records) {
                     log.info("Получен снимок состояния (snapshot) для хаба: {}", record.key());
-                    scenarioAnalyzerService.analyze(record.value());
+                    snapshotHandler.handle(record.value());
                 }
                 if (!records.isEmpty()) {
                     snapshotConsumer.commitSync();
