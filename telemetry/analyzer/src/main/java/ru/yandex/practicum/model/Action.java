@@ -1,10 +1,7 @@
 package ru.yandex.practicum.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 
 @Embeddable
@@ -12,11 +9,12 @@ import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Action {
 //    @Id
 //    @GeneratedValue(strategy = GenerationType.IDENTITY)
 //    @Column(name = "id")
-//    Long id;
+    Long id;
 
     //@Column(name = "type", columnDefinition = "VARCHAR(255)")
     @Enumerated(EnumType.STRING)
