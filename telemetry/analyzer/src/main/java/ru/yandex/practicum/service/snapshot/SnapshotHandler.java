@@ -59,13 +59,12 @@ public class SnapshotHandler {
     }
 
     private boolean handleScenario(Scenario scenario, Map<String, SensorStateAvro> sensorStateMap) {
-        List<ScenarioCondition> scenarioConditions =
-                scenarioConditionRepository.findByScenarioId(scenario.getId());
+        List<ScenarioCondition> scenarioConditions = scenario.getCondition();
 
         log.info("Получили СПИСОК условий {} у сценария name = {}",
-                scenarioConditions.size(), scenario.getName());
+                scenarioConditions != null ? scenarioConditions.size() : 0, scenario.getName());
 
-        if (scenarioConditions.isEmpty()) {
+        if (scenarioConditions == null || scenarioConditions.isEmpty()) {
             return false;
         }
 
