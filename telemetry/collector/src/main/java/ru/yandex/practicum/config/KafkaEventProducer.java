@@ -1,87 +1,44 @@
 package ru.yandex.practicum.config;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.specific.SpecificRecordBase;
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.exception.errorHandler.KafkaSendException;
+
+import java.time.Duration;
+import java.time.Instant;
 
 @Slf4j
 @Component
-public class KafkaEventProducer implements DisposableBean {
-    private final KafkaTemplate<String, byte[]> kafkaTemplate;
+@RequiredArgsConstructor
+public class KafkaEventProducer implements AutoCloseable {
+    private final Producer<String, SpecificRecordBase> producer;
 
-    public KafkaEventProducer(KafkaTemplate<String, byte[]> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
+    public void send(SpecificRecordBase message, String hubId, Instant timestamp, String topic) {
+        ProducerRecord<String, SpecificRecordBase> record =
+                new ProducerRecord<>(topic, null, timestamp.toEpochMilli(), hubId, message);
+
+        producer.send(record, logCallback(topic, hubId, message));
     }
 
-    public void sendRecord(ProducerParam param) {
-        if (!param.isValid()) {
-            throw new IllegalArgumentException("Недопустимый ProducerParam: " + param);
-        }
-
-        byte[] value = param.getValue();
-        log.info("ОТПРАВКА: Топик={}, Ключ={}, Размер={}. Первые 4 байта: [{}, {}, {}, {}]",
-                param.getTopic(), param.getKey(), value.length,
-                value[0], value[1], value[2], value[3]);
-
-        try {
-            ProducerRecord<String, byte[]> record = createProducerRecord(param);
-            sendKafkaMessage(record);
-        } catch (Exception e) {
-            handleException(param, e);
-        }
-    }
-
-    private ProducerRecord<String, byte[]> createProducerRecord(ProducerParam param) {
-        ProducerRecord<String, byte[]> record = new ProducerRecord<>(
-                param.getTopic(),
-                param.getPartition(),
-                param.getTimestamp(),
-                param.getKey(),
-                param.getValue()
-        );
-
-        if (param.getEventClass() != null) {
-            record.headers().add("event_class", param.getEventClass().getBytes());
-        }
-        if (param.getEventType() != null) {
-            record.headers().add("event_type", param.getEventType().getBytes());
-        }
-
-        record.headers().add("content-type", "application/x-protobuf".getBytes());
-        record.headers().add("ce-type", param.getEventClass() != null ? param.getEventClass().getBytes() : "unknown".getBytes());
-        record.headers().add("ce-source", "telemetry-collector".getBytes());
-        record.headers().add("ce-specversion", "1.0".getBytes());
-
-        return record;
-    }
-
-    private void sendKafkaMessage(ProducerRecord<String, byte[]> record) throws Exception {
-        try {
-            byte[] data = record.value();
-            log.info("ОТПРАВКА В KAFKA: топик={}, ключ={}, размер={} байт",
-                    record.topic(), record.key(), data != null ? data.length : 0);
-
-            kafkaTemplate.send(record).get();
-        } catch (Exception e) {
-            throw new KafkaSendException("Ошибка при отправке сообщения", e);
-        }
-    }
-
-    private void handleException(ProducerParam param, Exception e) {
-        log.error("Ошибка при отправке сообщения для param={}", param, e);
+    private Callback logCallback(String topic, String hubId, SpecificRecordBase message) {
+        return (RecordMetadata metadata, Exception ex) -> {
+            if (ex != null) {
+                log.error("Не удалось отправить сообщение в Kafka. topic={}, hubId={}", topic, hubId, ex);
+            } else {
+                log.info("Отправлено сообщение в Kafka: topic={}, partition={}, offset={}, hubId={}",
+                        metadata.topic(), metadata.partition(), metadata.offset(), hubId);
+            }
+        };
     }
 
     @Override
-    public void destroy() throws Exception {
-        try {
-            kafkaTemplate.flush();
-            log.info("KafkaEventProducer корректно остановлен");
-        } catch (Exception e) {
-            log.error("Ошибка при закрытии KafkaEventProducer", e);
-            throw e;
-        }
+    public void close() {
+        producer.flush();
+        producer.close(Duration.ofMillis(1000));
     }
 }
