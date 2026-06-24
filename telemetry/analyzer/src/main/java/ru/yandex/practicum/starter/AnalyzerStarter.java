@@ -18,6 +18,6 @@ public class AnalyzerStarter implements CommandLineRunner {
         hubEventsThread.setName("HubEventThread");
         hubEventsThread.start();
 
-        snapshotProcessor.start();
+        snapshotProcessor.run();
     }
 }

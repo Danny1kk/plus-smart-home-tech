@@ -16,11 +16,12 @@ import java.util.Collections;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SnapshotProcessor {
+public class SnapshotProcessor implements Runnable {
     private final KafkaConsumer<String, SensorsSnapshotAvro> snapshotConsumer;
     private final SnapshotHandler snapshotHandler;
 
-    public void start() {
+    @Override
+    public void run() {
         try {
             snapshotConsumer.subscribe(Collections.singletonList("telemetry.snapshots.v1"));
             log.info("SnapshotProcessor запущен, подписка на топик telemetry.snapshots.v1 оформлена");

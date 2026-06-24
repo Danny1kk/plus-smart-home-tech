@@ -64,4 +64,9 @@ public class Scenario {
             });
         }
     }
+
+    public void addCondition(ScenarioCondition condition) {
+        this.conditions.add(condition);
+        condition.setScenario(this);
+    }
 }

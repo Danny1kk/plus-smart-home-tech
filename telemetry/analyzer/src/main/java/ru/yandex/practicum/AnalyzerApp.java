@@ -21,10 +21,10 @@ public class AnalyzerApp {
 
         Thread hubEventsThread = new Thread(hubEventProcessor);
         hubEventsThread.setName("HubEventHandlerThread");
-        hubEventsThread.start();
+        hubEventsThread.run();
         log.info("Поток HubEventHandlerThread успешно запущен.");
 
         log.info("Запуск SnapshotProcessor в основном потоке...");
-        snapshotProcessor.start();
+        snapshotProcessor.run();
     }
 }
