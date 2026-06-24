@@ -17,14 +17,11 @@ public class AnalyzerApp {
                 SpringApplication.run(AnalyzerApp.class, args);
 
         HubEventProcessor hubEventProcessor = context.getBean(HubEventProcessor.class);
-        SnapshotProcessor snapshotProcessor = context.getBean(SnapshotProcessor.class);
 
         Thread hubEventsThread = new Thread(hubEventProcessor);
-        hubEventsThread.setName("HubEventHandlerThread");
-        hubEventsThread.run();
-        log.info("Поток HubEventHandlerThread успешно запущен.");
+        hubEventsThread.setName("HubEventProcessor");
 
-        log.info("Запуск SnapshotProcessor в основном потоке...");
-        snapshotProcessor.run();
+        hubEventsThread.start();
+        log.info("Поток HubEventHandlerThread успешно запущен.");
     }
 }

@@ -17,21 +17,23 @@ import java.util.Collections;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SnapshotProcessor implements Runnable {
+public class SnapshotProcessor {
     private final KafkaConsumer<String, SensorsSnapshotAvro> snapshotConsumer;
     private final SnapshotHandler snapshotHandler;
 
-    @Override
-    public void run() {
-        try {
-            snapshotConsumer.subscribe(Collections.singletonList("telemetry.snapshots.v1"));
-            log.info("SnapshotProcessor запущен, подписка на топик telemetry.snapshots.v1 оформлена");
+    @PostConstruct
+    public void start() {
 
-            while (true) {
-                ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofMillis(1000));
-                for (ConsumerRecord<String, SensorsSnapshotAvro> record : records) {
-                    log.info("Получен снимок состояния (snapshot) для хаба: {}", record.key());
-                    snapshotHandler.handle(record.value());
+        Thread thread = new Thread(() -> {
+            try {
+                snapshotConsumer.subscribe(Collections.singletonList("telemetry.snapshots.v1"));
+                log.info("SnapshotProcessor запущен, подписка на топик telemetry.snapshots.v1 оформлена");
+
+                while (true) {
+                    ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofSeconds(1));
+                    for (ConsumerRecord<String, SensorsSnapshotAvro> record : records) {
+                        log.info("Получен снимок состояния (snapshot) для хаба: {}", record.key());
+                        snapshotHandler.handle(record.value());
                 }
                 if (!records.isEmpty()) {
                     snapshotConsumer.commitSync();
@@ -42,13 +44,13 @@ public class SnapshotProcessor implements Runnable {
         } finally {
             snapshotConsumer.close();
         }
-    }
 
-    private final Thread thread = new Thread(this);
+    });
 
-    @PostConstruct
-    public void start() {
-        thread.start();
-        log.info("Поток SnapshotProcessor запущен через @PostConstruct");
+    thread.setName("SnapshotProcessor");
+
+    thread.start();
+
+    log.info("SnapshotProcessor запущен");
     }
 }

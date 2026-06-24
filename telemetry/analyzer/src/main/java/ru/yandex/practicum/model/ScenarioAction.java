@@ -16,18 +16,17 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ScenarioAction {
     @EmbeddedId
-    private ScenarioActionId id = new ScenarioActionId();
+    private ScenarioActionId id;
 
     @MapsId("scenarioId")
-    @JoinColumn(name = "scenario_id")
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     private Scenario scenario;
 
     @MapsId("sensorId")
-    @JoinColumn(name = "sensor_id")
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
     private Sensor sensor;
 
-    @Embedded
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "action_id")
     private Action action;
 }
