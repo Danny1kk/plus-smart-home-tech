@@ -44,7 +44,6 @@ public class ScenarioAnalyzerService {
                     break;
                 }
 
-                // Проверяем само условие
                 if (!matchCondition(sc, state)) {
                     log.info("--- [DEBUG] Условие для датчика '{}' НЕ ВЫПОЛНЕНО ---", dbId);
                     allConditionsMatch = false;
@@ -53,7 +52,7 @@ public class ScenarioAnalyzerService {
             }
 
             if (allConditionsMatch && !scenario.getConditions().isEmpty()) {
-                log.info("--- [DEBUG] Сценарий '{}' ВЫПОЛНЕН! Отправляем сигнал ---", scenario.getName());
+                log.info("[DEBUG] Сценарий {} ВЫПОЛНЕН! Отправляем сигнал", scenario.getName());
                 scenario.getActions().forEach(action ->
                         routerClient.sendAction(
                                 hubId,
@@ -95,7 +94,7 @@ public class ScenarioAnalyzerService {
         } else if (value instanceof Number n) {
             actualValue = n.intValue();
         } else {
-            String strValue = value.toString().toLowerCase();
+            String strValue = value.toString().toLowerCase().trim();
             if (strValue.equals("true") || strValue.equals("on") || strValue.equals("active") || strValue.equals("open")) {
                 actualValue = 1;
             } else if (strValue.equals("false") || strValue.equals("off") || strValue.equals("inactive") || strValue.equals("closed")) {
@@ -117,8 +116,62 @@ public class ScenarioAnalyzerService {
             case LOWER_THAN -> actualValue < target;
         };
 
-        log.info("DEBUG MATCH: Датчик {} | Извлечено: {} | Цель: {} | Операция: {} | Итог: {}",
-                sc.getId().getSensorId(), actualValue, target, sc.getCondition().getOperation(), result);
+        log.info("DEBUG: Датчик {} | Извлечено: {} | Цель: {} | Результат: {}", sc.getId().getSensorId(), actualValue, target, result);
         return result;
     }
+
+//    private boolean matchCondition(ScenarioCondition sc, SensorStateAvro state) {
+//        Object data = state.getData();
+//        if (!(data instanceof org.apache.avro.specific.SpecificRecordBase record)) {
+//            log.warn("Неизвестный формат данных для датчика {}", sc.getId().getSensorId());
+//            return false;
+//        }
+//
+//        Object value = null;
+//        String[] possibleFields = {"temperature", "temperatureC", "luminosity", "state", "isOpen", "motion", "motionDetected"};
+//
+//        for (String field : possibleFields) {
+//            try {
+//                value = record.get(field);
+//                if (value != null) break;
+//            } catch (Exception ignored) {}
+//        }
+//
+//        if (value == null) {
+//            log.warn("Значение не найдено для датчика {}. Доступные поля: {}", sc.getId().getSensorId(), record.getSchema().getFields());
+//            return false;
+//        }
+//
+//        int actualValue;
+//        if (value instanceof Boolean b) {
+//            actualValue = b ? 1 : 0;
+//        } else if (value instanceof Number n) {
+//            actualValue = n.intValue();
+//        } else {
+//            String strValue = value.toString().toLowerCase();
+//            if (strValue.equals("true") || strValue.equals("on") || strValue.equals("active") || strValue.equals("open")) {
+//                actualValue = 1;
+//            } else if (strValue.equals("false") || strValue.equals("off") || strValue.equals("inactive") || strValue.equals("closed")) {
+//                actualValue = 0;
+//            } else {
+//                try {
+//                    actualValue = Integer.parseInt(strValue);
+//                } catch (NumberFormatException e) {
+//                    log.warn("Не удалось преобразовать строковое значение '{}' к числу", strValue);
+//                    return false;
+//                }
+//            }
+//        }
+//
+//        int target = sc.getCondition().getValue();
+//        boolean result = switch (sc.getCondition().getOperation()) {
+//            case EQUALS -> actualValue == target;
+//            case GREATER_THAN -> actualValue > target;
+//            case LOWER_THAN -> actualValue < target;
+//        };
+//
+//        log.info("DEBUG MATCH: Датчик {} | Извлечено: {} | Цель: {} | Операция: {} | Итог: {}",
+//                sc.getId().getSensorId(), actualValue, target, sc.getCondition().getOperation(), result);
+//        return result;
+//    }
 }
