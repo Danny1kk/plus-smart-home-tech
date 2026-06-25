@@ -85,7 +85,7 @@ public class SnapshotHandler {
                         sensorStateMap));
     }
 
-    private boolean handleOperation(Condition condition, String currentValue) {
+    private boolean handleOperation(Condition condition, String currentValue, String typeName) {
         if (condition.getOperation() == null || currentValue == null) {
             return false;
         }
@@ -93,10 +93,12 @@ public class SnapshotHandler {
         String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
         String opName = condition.getOperation().name();
 
-        boolean targetBool = targetValue.equals("true") || targetValue.equals("1");
-        boolean currentBool = currentValue.equals("true") || currentValue.equals("1");
-
-        if ("EQUALS".equals(opName)) {
+        if ("SWITCH".equals(typeName) || "MOTION".equals(typeName)) {
+            if (!"EQUALS".equals(opName)) {
+                return false;
+            }
+            boolean targetBool = targetValue.equals("true") || targetValue.equals("1");
+            boolean currentBool = currentValue.equals("true") || currentValue.equals("1");
             return targetBool == currentBool;
         }
 
@@ -105,11 +107,14 @@ public class SnapshotHandler {
             int target = Integer.parseInt(targetValue);
 
             return switch (opName) {
+                case "EQUALS" -> current == target;
                 case "GREATER_THAN" -> current > target;
                 case "LESS_THAN" -> current < target;
                 default -> false;
             };
         } catch (NumberFormatException e) {
+            log.warn("Не удалось распарсить числа для датчика типа {}: текущее={}, эталон={}",
+                    typeName, currentValue, targetValue);
             return false;
         }
     }
@@ -132,37 +137,37 @@ public class SnapshotHandler {
             result = switch (typeName) {
                 case "MOTION" -> {
                     if (data instanceof MotionSensorAvro motion) {
-                        yield handleOperation(condition, String.valueOf(motion.getMotion()));
+                        yield handleOperation(condition, String.valueOf(motion.getMotion()), typeName);
                     }
                     yield false;
                 }
                 case "LUMINOSITY" -> {
                     if (data instanceof LightSensorAvro light) {
-                        yield handleOperation(condition, String.valueOf(light.getLuminosity()));
+                        yield handleOperation(condition, String.valueOf(light.getLuminosity()), typeName);
                     }
                     yield false;
                 }
                 case "SWITCH" -> {
                     if (data instanceof SwitchSensorAvro sw) {
-                        yield handleOperation(condition, String.valueOf(sw.getState()));
+                        yield handleOperation(condition, String.valueOf(sw.getState()), typeName);
                     }
                     yield false;
                 }
                 case "TEMPERATURE" -> {
                     if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, String.valueOf(climate.getTemperatureC()));
+                        yield handleOperation(condition, String.valueOf(climate.getTemperatureC()), typeName);
                     }
                     yield false;
                 }
                 case "CO2LEVEL" -> {
                     if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, String.valueOf(climate.getCo2Level()));
+                        yield handleOperation(condition, String.valueOf(climate.getCo2Level()), typeName);
                     }
                     yield false;
                 }
                 case "HUMIDITY" -> {
                     if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, String.valueOf(climate.getHumidity()));
+                        yield handleOperation(condition, String.valueOf(climate.getHumidity()), typeName);
                     }
                     yield false;
                 }
