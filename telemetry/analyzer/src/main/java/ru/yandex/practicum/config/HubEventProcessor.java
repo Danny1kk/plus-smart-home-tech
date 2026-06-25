@@ -7,7 +7,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.model.*;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
@@ -17,7 +16,6 @@ import ru.yandex.practicum.repository.ScenarioRepository;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -31,21 +29,19 @@ public class HubEventProcessor implements Runnable {
 
     @Override
     public void run() {
-        Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
-
         try {
             hubEventConsumer.subscribe(Collections.singletonList("telemetry.hubs.v1"));
-            log.info("HubEventProcessor запущен, подписка на топик telemetry.hubs.v1 оформлена");
-
-            while (true) {
+            while (!Thread.currentThread().isInterrupted()) {
                 ConsumerRecords<String, HubEventAvro> records = hubEventConsumer.poll(Duration.ofMillis(1000));
                 for (ConsumerRecord<String, HubEventAvro> record : records) {
                     handleHubEvent(record.value());
-                    manageOffsets(record, currentOffsets, hubEventConsumer);
+                }
+                if (!records.isEmpty()) {
+                    hubEventConsumer.commitSync();
                 }
             }
-        } catch (WakeupException e) {
-            log.info("HubEventProcessor получил сигнал остановки (wakeup).");
+        } catch (Exception e) {
+            log.error("Ошибка в HubEventProcessor", e);
         } finally {
             hubEventConsumer.close();
         }

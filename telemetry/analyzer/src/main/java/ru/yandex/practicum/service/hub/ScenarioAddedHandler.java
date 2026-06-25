@@ -27,16 +27,13 @@ public class ScenarioAddedHandler implements HubEventHandler {
     }
 
     @Transactional
-    @Override
     public void handle(HubEventAvro hub) {
         ScenarioAddedEventAvro avro = (ScenarioAddedEventAvro) hub.getPayload();
         log.info("DEBUG: Пытаюсь сохранить сценарий {} для хаба {}", avro.getName(), hub.getHubId());
 
         scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
-                .ifPresent(s -> {
-                    scenarioRepository.delete(s);
+                .ifPresent(scenarioRepository::delete);
                     scenarioRepository.flush();
-                });
 
         Scenario scenario = scenarioRepository.save(Scenario.builder()
                 .hubId(hub.getHubId())
