@@ -100,14 +100,22 @@ CREATE TABLE IF NOT EXISTS scenario_actions (
 
 CREATE OR REPLACE FUNCTION check_hub_id()
 RETURNS TRIGGER AS
-'
+DECLARE
+    scenario_hub VARCHAR;
+    sensor_hub VARCHAR;
 BEGIN
-    IF (SELECT hub_id FROM scenarios WHERE id = NEW.scenario_id) != (SELECT hub_id FROM sensors WHERE id = NEW.sensor_id) THEN
-        RAISE EXCEPTION ''Hub IDs do not match for scenario_id % and sensor_id %'', NEW.scenario_id, NEW.sensor_id;
+BEGIN
+    SELECT hub_id INTO scenario_hub FROM scenarios WHERE id = NEW.scenario_id;
+    SELECT hub_id INTO sensor_hub FROM sensors WHERE id = NEW.sensor_id;
+
+    IF scenario_hub IS NOT NULL AND sensor_hub IS NOT NULL THEN
+        IF scenario_hub <> sensor_hub THEN
+            RAISE EXCEPTION 'Hub IDs do not match for scenario_id % and sensor_id %', NEW.scenario_id, NEW.sensor_id;
+        END IF;
     END IF;
+
     RETURN NEW;
 END;
-'
 LANGUAGE plpgsql;
 
 CREATE OR REPLACE TRIGGER tr_bi_scenario_conditions_hub_id_check
