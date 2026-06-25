@@ -103,11 +103,11 @@ public class SnapshotHandler {
         }
 
         try {
-            int current = Integer.parseInt(currentValue);
-            int target = Integer.parseInt(targetValue);
+            double current = Double.parseDouble(currentValue);
+            double target = Double.parseDouble(targetValue);
 
             return switch (opName) {
-                case "EQUALS" -> current == target;
+                case "EQUALS" -> Math.abs(current - target) < 0.0001;
                 case "GREATER_THAN" -> current > target;
                 case "LESS_THAN" -> current < target;
                 default -> false;
