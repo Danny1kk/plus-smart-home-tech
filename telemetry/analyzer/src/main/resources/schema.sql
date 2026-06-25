@@ -104,7 +104,6 @@ DECLARE
     scenario_hub VARCHAR;
     sensor_hub VARCHAR;
 BEGIN
-BEGIN
     SELECT hub_id INTO scenario_hub FROM scenarios WHERE id = NEW.scenario_id;
     SELECT hub_id INTO sensor_hub FROM sensors WHERE id = NEW.sensor_id;
 
