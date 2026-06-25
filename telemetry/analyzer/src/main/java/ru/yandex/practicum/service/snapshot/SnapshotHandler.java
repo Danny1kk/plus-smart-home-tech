@@ -85,22 +85,33 @@ public class SnapshotHandler {
                         sensorStateMap));
     }
 
-    private boolean handleOperation(Condition condition, Integer currentValue) {
-        Integer targetValue = condition.getValue();
+    private boolean handleOperation(Condition condition, String currentValue) {
         if (condition.getOperation() == null || currentValue == null) {
             return false;
         }
 
+        String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
         String opName = condition.getOperation().name();
-        return switch (opName) {
-            case "EQUALS" -> targetValue.equals(currentValue);
-            case "GREATER_THAN" -> currentValue > targetValue;
-            case "LESS_THAN" -> currentValue < targetValue;
-            default -> {
-                log.warn("Неизвестная операция: {}", opName);
-                yield false;
-            }
-        };
+
+        boolean targetBool = targetValue.equals("true") || targetValue.equals("1");
+        boolean currentBool = currentValue.equals("true") || currentValue.equals("1");
+
+        if ("EQUALS".equals(opName)) {
+            return targetBool == currentBool;
+        }
+
+        try {
+            int current = Integer.parseInt(currentValue);
+            int target = Integer.parseInt(targetValue);
+
+            return switch (opName) {
+                case "GREATER_THAN" -> current > target;
+                case "LESS_THAN" -> current < target;
+                default -> false;
+            };
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private boolean checkCondition(Condition condition, String sensorId,
@@ -121,35 +132,37 @@ public class SnapshotHandler {
             result = switch (typeName) {
                 case "MOTION" -> {
                     if (data instanceof MotionSensorAvro motion) {
-                        yield handleOperation(condition, motion.getMotion() ? 1 : 0);
+                        yield handleOperation(condition, String.valueOf(motion.getMotion()));
                     }
                     yield false;
                 }
                 case "LUMINOSITY" -> {
                     if (data instanceof LightSensorAvro light) {
-                        yield handleOperation(condition, light.getLuminosity());
+                        yield handleOperation(condition, String.valueOf(light.getLuminosity()));
                     }
                     yield false;
                 }
                 case "SWITCH" -> {
-                    SwitchSensorAvro sw = (SwitchSensorAvro) sensorState.getData();
-                    yield handleOperation(condition, sw.getState() ? 1 : 0);
+                    if (data instanceof SwitchSensorAvro sw) {
+                        yield handleOperation(condition, String.valueOf(sw.getState()));
+                    }
+                    yield false;
                 }
                 case "TEMPERATURE" -> {
                     if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, climate.getTemperatureC());
+                        yield handleOperation(condition, String.valueOf(climate.getTemperatureC()));
                     }
                     yield false;
                 }
                 case "CO2LEVEL" -> {
                     if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, climate.getCo2Level());
+                        yield handleOperation(condition, String.valueOf(climate.getCo2Level()));
                     }
                     yield false;
                 }
                 case "HUMIDITY" -> {
                     if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, climate.getHumidity());
+                        yield handleOperation(condition, String.valueOf(climate.getHumidity()));
                     }
                     yield false;
                 }
