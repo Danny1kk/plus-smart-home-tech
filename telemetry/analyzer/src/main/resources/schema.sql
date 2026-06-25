@@ -37,11 +37,12 @@ CREATE TABLE IF NOT EXISTS scenario_actions (
     PRIMARY KEY (scenario_id, sensor_id, action_id)
 );
 
-CREATE OR REPLACE FUNCTION check_hub_id()
-RETURNS TRIGGER AS $$
+CREATE OR REPLACE FUNCTION check_hub_id() RETURNS TRIGGER AS $$
 BEGIN
-    IF (SELECT hub_id FROM scenarios WHERE id = NEW.scenario_id) != (SELECT hub_id FROM sensors WHERE id = NEW.sensor_id) THEN
-        RAISE EXCEPTION 'Hub IDs do not match for scenario_id % and sensor_id %', NEW.scenario_id, NEW.sensor_id;
+    IF NEW.sensor_id IS NOT NULL THEN
+        IF (SELECT hub_id FROM scenarios WHERE id = NEW.scenario_id) != (SELECT hub_id FROM sensors WHERE id = NEW.sensor_id) THEN
+            RAISE EXCEPTION 'Hub IDs do not match for scenario_id % and sensor_id %', NEW.scenario_id, NEW.sensor_id;
+        END IF;
     END IF;
     RETURN NEW;
 END;
