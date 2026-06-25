@@ -132,10 +132,8 @@ public class SnapshotHandler {
                     yield false;
                 }
                 case "SWITCH" -> {
-                    if (data instanceof SwitchSensorAvro sw) {
-                        yield handleOperation(condition, sw.getState() ? 1 : 0);
-                    }
-                    yield false;
+                    SwitchSensorAvro sw = (SwitchSensorAvro) sensorState.getData();
+                    yield handleOperation(condition, sw.getState() ? 1 : 0);
                 }
                 case "TEMPERATURE" -> {
                     if (data instanceof ClimateSensorAvro climate) {
