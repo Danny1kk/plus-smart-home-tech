@@ -95,7 +95,7 @@ public class SnapshotHandler {
         return switch (opName) {
             case "EQUALS" -> targetValue.equals(currentValue);
             case "GREATER_THAN" -> currentValue > targetValue;
-            case "LOWER_THAN" -> currentValue < targetValue;
+            case "LESS_THAN" -> currentValue < targetValue;
             default -> {
                 log.warn("Неизвестная операция: {}", opName);
                 yield false;
@@ -107,44 +107,62 @@ public class SnapshotHandler {
                                    Map<String, SensorStateAvro> sensorStateMap) {
 
         SensorStateAvro sensorState = sensorStateMap.get(sensorId);
-        if (sensorState == null) {
-            return false;
-        }
-
-        if (condition.getType() == null) {
+        if (sensorState == null || condition.getType() == null) {
             return false;
         }
 
         String typeName = condition.getType().name();
-        boolean result = switch (typeName) {
-            case "MOTION" -> {
-                MotionSensorAvro motion = (MotionSensorAvro) sensorState.getData();
-                yield handleOperation(condition, motion.getMotion() ? 1 : 0);
-            }
-            case "LUMINOSITY" -> {
-                LightSensorAvro light = (LightSensorAvro) sensorState.getData();
-                yield handleOperation(condition, light.getLuminosity());
-            }
-            case "SWITCH" -> {
-                SwitchSensorAvro sw = (SwitchSensorAvro) sensorState.getData();
-                yield handleOperation(condition, sw.getState() ? 1 : 0);
-            }
-            case "TEMPERATURE" -> {
-                ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
-                yield handleOperation(condition, climate.getTemperatureC());
-            }
-            case "CO2LEVEL" -> {
-                ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
-                yield handleOperation(condition, climate.getCo2Level());
-            }
-            case "HUMIDITY" -> {
-                ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
-                yield handleOperation(condition, climate.getHumidity());
-            }
-            default -> false;
-        };
+        Object data = sensorState.getData();
+        if (data == null) return false;
 
-        log.info("Проверяю условие датчика {}: тип={}, операция={}, эталон={}, текущее={}. Результат: {}",
+        boolean result = false;
+
+        try {
+            result = switch (typeName) {
+                case "MOTION" -> {
+                    if (data instanceof MotionSensorAvro motion) {
+                        yield handleOperation(condition, motion.getMotion() ? 1 : 0);
+                    }
+                    yield false;
+                }
+                case "LUMINOSITY" -> {
+                    if (data instanceof LightSensorAvro light) {
+                        yield handleOperation(condition, light.getLuminosity());
+                    }
+                    yield false;
+                }
+                case "SWITCH" -> {
+                    if (data instanceof SwitchSensorAvro sw) {
+                        yield handleOperation(condition, sw.getState() ? 1 : 0);
+                    }
+                    yield false;
+                }
+                case "TEMPERATURE" -> {
+                    if (data instanceof ClimateSensorAvro climate) {
+                        yield handleOperation(condition, climate.getTemperatureC());
+                    }
+                    yield false;
+                }
+                case "CO2LEVEL" -> {
+                    if (data instanceof ClimateSensorAvro climate) {
+                        yield handleOperation(condition, climate.getCo2Level());
+                    }
+                    yield false;
+                }
+                case "HUMIDITY" -> {
+                    if (data instanceof ClimateSensorAvro climate) {
+                        yield handleOperation(condition, climate.getHumidity());
+                    }
+                    yield false;
+                }
+                default -> false;
+            };
+        } catch (Exception e) {
+            log.error("Ошибка при разборе данных датчика {}: ", sensorId, e);
+            return false;
+        }
+
+        log.info("Проверяю условие датчика {}: тип={}, операция={}, эталон={}, текущее={}, результат: {}",
                 sensorId, typeName, condition.getOperation(), condition.getValue(), sensorState.getData(), result);
 
         return result;
