@@ -113,7 +113,7 @@ public class SnapshotHandler {
                 default -> false;
             };
         } catch (NumberFormatException e) {
-            log.warn("Не удалось распарсить числа для датчика типа {}: текущее={}, эталон={}",
+            log.warn("Не удалось распарсить числа для датчика {}: текущее={}, эталон={}",
                     typeName, currentValue, targetValue);
             return false;
         }
