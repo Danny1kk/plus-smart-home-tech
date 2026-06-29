@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.service.snapshot.SnapshotHandler;
+import jakarta.annotation.PostConstruct;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -24,10 +25,10 @@ public class SnapshotProcessor {
     @Value("${analyzer.topic.snapshots-topic:telemetry.snapshots.v1}")
     private String snapshotTopic;
 
+    @PostConstruct
     public void start() {
         Thread thread = new Thread(() -> {
             try {
-                // Подписка должна происходить внутри потока и после инициализации @Value
                 snapshotConsumer.subscribe(Collections.singletonList(snapshotTopic));
                 log.info("SnapshotProcessor запущен, подписка на топик {}", snapshotTopic);
 
