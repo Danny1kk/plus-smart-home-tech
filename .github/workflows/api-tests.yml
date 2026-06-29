@@ -1,32 +1,48 @@
+#name: Smart Home Tech Tests
+#
+#on:
+#  workflow_dispatch:
+#    inputs:
+#      verbose_mode:
+#        description: "Включить подробные логи во время тестов"
+#        required: false
+#        default: false
+#        type: boolean
+#      print_logs:
+#        description: "Включить вывод логов в консоль"
+#        required: false
+#        default: false
+#        type: boolean
+#  pull_request:
+#    inputs:
+#      verbose_mode:
+#        required: false
+#        type: string
+#        default: "false"
+#      print_logs:
+#        required: false
+#        type: string
+#        default: "false"
+#
+#jobs:
+#  build:
+#    uses: yandex-praktikum/plus-smart-home-tech/.github/workflows/api-tests.yml@ci
+#    with:
+#      verbose_mode: ${{ inputs.verbose_mode }}
+#      print_logs: ${{ inputs.print_logs }}
+
 name: Smart Home Tech Tests
 
 on:
-  workflow_dispatch:
-    inputs:
-      verbose_mode:
-        description: "Включить подробные логи во время тестов"
-        required: false
-        default: false
-        type: boolean
-      print_logs:
-        description: "Включить вывод логов в консоль"
-        required: false
-        default: false
-        type: boolean
+  push:
+    branches:
+      - 4-analyzer
   pull_request:
-    inputs:
-      verbose_mode:
-        required: false
-        type: string
-        default: "false"
-      print_logs:
-        required: false
-        type: string
-        default: "false"
+  workflow_dispatch:
 
 jobs:
   build:
     uses: yandex-praktikum/plus-smart-home-tech/.github/workflows/api-tests.yml@ci
     with:
-      verbose_mode: ${{ inputs.verbose_mode }}
-      print_logs: ${{ inputs.print_logs }}
+      verbose_mode: true
+      print_logs: true
