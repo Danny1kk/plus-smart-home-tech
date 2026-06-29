@@ -110,7 +110,7 @@ public class SnapshotHandler {
             return switch (opName) {
                 case "EQUALS" -> Math.abs(current - target) < 0.0001;
                 case "GREATER_THAN" -> current > target;
-                case "LESS_THAN" -> current < target;
+                case "LOWER_THAN" -> current < target;
                 default -> false;
             };
         } catch (NumberFormatException e) {
