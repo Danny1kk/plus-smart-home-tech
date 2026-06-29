@@ -27,14 +27,17 @@ public class SnapshotProcessor {
     public void start() {
         Thread thread = new Thread(() -> {
             try {
+                // Подписка должна происходить внутри потока и после инициализации @Value
                 snapshotConsumer.subscribe(Collections.singletonList(snapshotTopic));
                 log.info("SnapshotProcessor запущен, подписка на топик {}", snapshotTopic);
 
-                while (true) {
+                while (!Thread.currentThread().isInterrupted()) {
                     ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofSeconds(1));
                     for (var record : records) {
                         log.info("Получен снапшот для хаба: {}", record.key());
-                        snapshotHandler.handle(record.value());
+                        if (record.value() != null) {
+                            snapshotHandler.handle(record.value());
+                        }
                     }
                     if (!records.isEmpty()) {
                         snapshotConsumer.commitSync();
@@ -45,7 +48,11 @@ public class SnapshotProcessor {
             } catch (Exception e) {
                 log.error("Критическая ошибка в SnapshotProcessor", e);
             } finally {
-                snapshotConsumer.close();
+                try {
+                    snapshotConsumer.close();
+                } catch (Exception e) {
+                    log.error("Ошибка при закрытии snapshotConsumer", e);
+                }
                 log.info("SnapshotProcessor: consumer закрыт.");
             }
         });

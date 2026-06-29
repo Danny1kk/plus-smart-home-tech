@@ -1,6 +1,9 @@
 package ru.yandex.practicum.client;
 
-import net.devh.boot.grpc.client.inject.GrpcClient;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.grpc.telemetry.event.ActionTypeProto;
 import ru.yandex.practicum.grpc.telemetry.event.DeviceActionRequest;
@@ -9,11 +12,19 @@ import ru.yandex.practicum.model.Action;
 
 import java.time.Instant;
 
+@Slf4j
 @Component
 public class HubRouterClient {
 
-    @GrpcClient("hub-router")
     private HubRouterControllerGrpc.HubRouterControllerBlockingStub hubRouterStub;
+
+    public HubRouterClient(@Value("${grpc.client.hub-router.address}") String actionHandlerAddress) {
+        String target = actionHandlerAddress.replace("static://", "");
+        ManagedChannel channel = ManagedChannelBuilder.forTarget(target)
+                .usePlaintext()
+                .build();
+        this.hubRouterStub = HubRouterControllerGrpc.newBlockingStub(channel);
+    }
 
     public void sendAction(String hubId, String scenarioName, String sensorId, Action action, Instant timestamp) {
         ActionTypeProto protoType = ActionTypeProto.valueOf(action.getType().name());
@@ -32,6 +43,15 @@ public class HubRouterClient {
                         .build())
                 .build();
 
-        hubRouterStub.handleDeviceAction(request);
+        sendAction(request);
+    }
+
+    public void sendAction(DeviceActionRequest request) {
+        try {
+            log.info("Отправка команды в Hub Router для хаба {} и устройства {}", request.getHubId(), request.getScenarioName());
+            hubRouterStub.handleDeviceAction(request);
+        } catch (Exception e) {
+            log.error("Ошибка при отправке gRPC запроса в Hub Router: {}", e.getMessage(), e);
+        }
     }
 }
