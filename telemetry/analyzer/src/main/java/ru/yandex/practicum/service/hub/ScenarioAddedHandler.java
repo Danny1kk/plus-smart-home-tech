@@ -66,15 +66,14 @@ public class ScenarioAddedHandler implements HubEventHandler {
                     .value(asInteger(cDto.getValue()))
                     .build());
 
-            ScenarioCondition scenarioCondition = scenarioConditionRepository.save(
-                    ScenarioCondition.builder()
-                            .scenario(scenario)
-                            .sensor(sensor)
-                            .condition(condition)
-                            .id(new ScenarioConditionId(scenario.getId(), sensor.getId()))
-                            .build());
+            ScenarioCondition scenarioCondition = ScenarioCondition.builder()
+                    .scenario(scenario)
+                    .sensor(sensor)
+                    .condition(condition)
+                    .id(new ScenarioConditionId(scenario.getId(), sensor.getId()))
+                    .build();
 
-            scenario.getConditions().add(scenarioCondition);
+            scenario.addCondition(scenarioCondition);
         });
     }
 
@@ -92,15 +91,14 @@ public class ScenarioAddedHandler implements HubEventHandler {
                     .value(aDto.getValue())
                     .build());
 
-            ScenarioAction scenarioAction = scenarioActionRepository.save(
-                    ScenarioAction.builder()
-                            .scenario(scenario)
-                            .sensor(sensor)
-                            .action(action)
-                            .id(new ScenarioActionId(scenario.getId(), sensor.getId()))
-                            .build());
+            ScenarioAction scenarioAction = ScenarioAction.builder()
+                    .scenario(scenario)
+                    .sensor(sensor)
+                    .action(action)
+                    .id(new ScenarioActionId(scenario.getId(), sensor.getId()))
+                    .build();
 
-            scenario.getActions().add(scenarioAction);
+            scenario.addAction(scenarioAction);
         });
     }
 
