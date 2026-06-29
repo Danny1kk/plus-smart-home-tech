@@ -21,7 +21,6 @@ public class AnalyzerApp {
 
         Thread hubEventsThread = new Thread(hubEventProcessor);
         hubEventsThread.setName("HubEventProcessor");
-
         hubEventsThread.start();
         log.info("Поток HubEventHandlerThread успешно запущен.");
 
