@@ -108,9 +108,6 @@ public class ScenarioAddedHandler implements HubEventHandler {
         if (value == null) {
             return 0;
         }
-        if (value instanceof Integer) {
-            return (Integer) value;
-        }
         if (value instanceof Number) {
             return ((Number) value).intValue();
         }
@@ -118,8 +115,11 @@ public class ScenarioAddedHandler implements HubEventHandler {
             return (Boolean) value ? 1 : 0;
         }
         if (value instanceof String || value instanceof CharSequence) {
+            String str = value.toString().trim();
+            if ("true".equalsIgnoreCase(str)) return 1;
+            if ("false".equalsIgnoreCase(str)) return 0;
             try {
-                return Integer.parseInt(value.toString());
+                return Integer.parseInt(str);
             } catch (NumberFormatException e) {
                 log.warn("Не удалось распарсить строку в Integer: {}", value);
                 return 0;
