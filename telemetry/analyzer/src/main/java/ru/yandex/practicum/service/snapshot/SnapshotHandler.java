@@ -14,8 +14,6 @@ import ru.yandex.practicum.kafka.telemetry.event.SwitchSensorAvro;
 import ru.yandex.practicum.model.Condition;
 import ru.yandex.practicum.model.Scenario;
 import ru.yandex.practicum.model.ScenarioCondition;
-import ru.yandex.practicum.repository.ScenarioActionRepository;
-import ru.yandex.practicum.repository.ScenarioConditionRepository;
 import ru.yandex.practicum.repository.ScenarioRepository;
 
 import java.time.Instant;
@@ -28,88 +26,161 @@ import java.util.Map;
 public class SnapshotHandler {
 
     private final ScenarioRepository scenarioRepository;
-    private final ScenarioConditionRepository scenarioConditionRepository;
-    private final ScenarioActionRepository scenarioActionRepository;
     private final HubRouterClient routerClient;
 
     @Transactional(readOnly = true)
     public void handle(SensorsSnapshotAvro sensorsSnapshotAvro) {
+        String hubId = sensorsSnapshotAvro.getHubId();
+
+        List<Scenario> scenariosList = scenarioRepository.findByHubId(hubId);
+
+        log.info("DEBUG_LOG: Анализатор получил снапшот для хаба '{}'. Найдено сценариев в БД: {}",
+                hubId, (scenariosList != null ? scenariosList.size() : "NULL"));
+
+        if (scenariosList == null || scenariosList.isEmpty()) {
+            log.info("DEBUG_LOG: Сценарии не найдены, прекращаю анализ для хаба '{}'", hubId);
+            return;
+        }
+
         Map<String, SensorStateAvro> sensorStateMap = sensorsSnapshotAvro.getSensorsState();
 
-        List<Scenario> scenariosList = scenarioRepository.findByHubId(sensorsSnapshotAvro.getHubId());
+        scenariosList.forEach(scenario -> {
+            log.info("DEBUG_LOG: Проверяю сценарий '{}'. Условий в БД: {}",
+                    scenario.getName(),
+                    (scenario.getConditions() != null ? scenario.getConditions().size() : "NULL"));
 
-        scenariosList.stream()
-                .filter(scenario -> handleScenario(scenario, sensorStateMap))
-                .forEach(scenario -> {
-                    log.info("Отправка ДЕЙСТВИЯ для сценария {}", scenario.getName());
-                    sendScenarioAction(scenario, sensorsSnapshotAvro);
-                });
+            if (handleScenario(scenario, sensorStateMap)) {
+                log.info("DEBUG_LOG: !!! УСЛОВИЯ СЦЕНАРИЯ '{}' ВЫПОЛНЕНЫ !!!", scenario.getName());
+                sendScenarioAction(scenario, sensorsSnapshotAvro);
+            } else {
+                log.info("DEBUG_LOG: Условия сценария '{}' НЕ выполнены", scenario.getName());
+            }
+        });
     }
 
     private void sendScenarioAction(Scenario scenario, SensorsSnapshotAvro snapshot) {
-        scenario.getActions().forEach(scenarioAction ->
-                routerClient.sendAction(
-                        snapshot.getHubId(),
-                        scenario.getName(),
-                        scenarioAction.getAction(),
-                        Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
-                )
-        );
+        scenario.getActions().forEach(scenarioAction -> {
+            log.info("gRPC: Отправка команды на устройство {} в рамках сценария {}",
+                    scenarioAction.getId().getSensorId(), scenario.getName());
+            routerClient.sendAction(
+                    snapshot.getHubId(),
+                    scenario.getName(),
+                    scenarioAction.getId().getSensorId(),
+                    scenarioAction.getAction(),
+                    Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
+            );
+        });
     }
 
     private boolean handleScenario(Scenario scenario, Map<String, SensorStateAvro> sensorStateMap) {
-        List<ScenarioCondition> scenarioConditions =
-                scenarioConditionRepository.findByScenario(scenario);
-        log.info("Получили СПИСОК условий {} у сценария name = {}",
-                scenarioConditions.size(), scenario.getName());
+        List<ScenarioCondition> scenarioConditions = scenario.getConditions();
+
+        if (scenarioConditions == null || scenarioConditions.isEmpty()) {
+            return false;
+        }
 
         return scenarioConditions.stream()
-                .noneMatch(sc -> !checkCondition(sc.getCondition(),
+                .allMatch(sc -> checkCondition(sc.getCondition(),
                         sc.getSensor().getId(),
                         sensorStateMap));
     }
 
-    private boolean handleOperation(Condition condition, Integer currentValue) {
-        Integer targetValue = condition.getValue();
-        return switch (condition.getOperation()) {
-            case EQUALS -> targetValue.equals(currentValue);
-            case GREATER_THAN -> currentValue > targetValue;
-            case LOWER_THAN -> currentValue < targetValue;
-        };
+    private boolean handleOperation(Condition condition, String currentValue, String typeName) {
+        if (condition.getOperation() == null || currentValue == null) {
+            return false;
+        }
+
+        String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
+        String opName = condition.getOperation().name();
+
+        if ("SWITCH".equals(typeName) || "MOTION".equals(typeName)) {
+            if (!"EQUALS".equals(opName)) {
+                return false;
+            }
+            boolean targetBool = targetValue.equals("true") || targetValue.equals("1");
+            boolean currentBool = currentValue.equals("true") || currentValue.equals("1");
+            return targetBool == currentBool;
+        }
+
+        try {
+            double current = Double.parseDouble(currentValue);
+            double target = Double.parseDouble(targetValue);
+
+            return switch (opName) {
+                case "EQUALS" -> Math.abs(current - target) < 0.0001;
+                case "GREATER_THAN" -> current > target;
+                case "LESS_THAN" -> current < target;
+                default -> false;
+            };
+        } catch (NumberFormatException e) {
+            log.warn("Не удалось распарсить числа для датчика {}: текущее={}, эталон={}",
+                    typeName, currentValue, targetValue);
+            return false;
+        }
     }
 
     private boolean checkCondition(Condition condition, String sensorId,
                                    Map<String, SensorStateAvro> sensorStateMap) {
 
         SensorStateAvro sensorState = sensorStateMap.get(sensorId);
-        if (sensorState == null) {
+        if (sensorState == null || condition.getType() == null) {
             return false;
         }
-        return switch (condition.getType()) {
-            case MOTION -> {
-                MotionSensorAvro motion = (MotionSensorAvro) sensorState.getData();
-                yield handleOperation(condition, motion.getMotion() ? 1 : 0);
-            }
-            case LUMINOSITY -> {
-                LightSensorAvro light = (LightSensorAvro) sensorState.getData();
-                yield handleOperation(condition, light.getLuminosity());
-            }
-            case SWITCH -> {
-                SwitchSensorAvro sw = (SwitchSensorAvro) sensorState.getData();
-                yield handleOperation(condition, sw.getState() ? 1 : 0);
-            }
-            case TEMPERATURE -> {
-                ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
-                yield handleOperation(condition, climate.getTemperatureC());
-            }
-            case CO2LEVEL -> {
-                ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
-                yield handleOperation(condition, climate.getCo2Level());
-            }
-            case HUMIDITY -> {
-                ClimateSensorAvro climate = (ClimateSensorAvro) sensorState.getData();
-                yield handleOperation(condition, climate.getHumidity());
-            }
-        };
+
+        String typeName = condition.getType().name();
+        Object data = sensorState.getData();
+        if (data == null) return false;
+
+        boolean result = false;
+
+        try {
+            result = switch (typeName) {
+                case "MOTION" -> {
+                    if (data instanceof MotionSensorAvro motion) {
+                        yield handleOperation(condition, String.valueOf(motion.getMotion()), typeName);
+                    }
+                    yield false;
+                }
+                case "LUMINOSITY" -> {
+                    if (data instanceof LightSensorAvro light) {
+                        yield handleOperation(condition, String.valueOf(light.getLuminosity()), typeName);
+                    }
+                    yield false;
+                }
+                case "SWITCH" -> {
+                    if (data instanceof SwitchSensorAvro sw) {
+                        yield handleOperation(condition, String.valueOf(sw.getState()), typeName);
+                    }
+                    yield false;
+                }
+                case "TEMPERATURE" -> {
+                    if (data instanceof ClimateSensorAvro climate) {
+                        yield handleOperation(condition, String.valueOf(climate.getTemperatureC()), typeName);
+                    }
+                    yield false;
+                }
+                case "CO2LEVEL" -> {
+                    if (data instanceof ClimateSensorAvro climate) {
+                        yield handleOperation(condition, String.valueOf(climate.getCo2Level()), typeName);
+                    }
+                    yield false;
+                }
+                case "HUMIDITY" -> {
+                    if (data instanceof ClimateSensorAvro climate) {
+                        yield handleOperation(condition, String.valueOf(climate.getHumidity()), typeName);
+                    }
+                    yield false;
+                }
+                default -> false;
+            };
+        } catch (Exception e) {
+            log.error("Ошибка при разборе данных датчика {}: ", sensorId, e);
+            return false;
+        }
+
+        log.info("Проверяю условие датчика {}: тип={}, операция={}, эталон={}, текущее={}, результат: {}",
+                sensorId, typeName, condition.getOperation(), condition.getValue(), sensorState.getData(), result);
+
+        return result;
     }
 }

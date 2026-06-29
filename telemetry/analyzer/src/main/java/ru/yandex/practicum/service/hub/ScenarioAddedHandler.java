@@ -6,20 +6,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
-import ru.yandex.practicum.model.Action;
-import ru.yandex.practicum.model.Condition;
-import ru.yandex.practicum.model.Scenario;
-import ru.yandex.practicum.model.ScenarioAction;
-import ru.yandex.practicum.model.ScenarioActionId;
-import ru.yandex.practicum.model.ScenarioCondition;
-import ru.yandex.practicum.model.ScenarioConditionId;
-import ru.yandex.practicum.model.Sensor;
-import ru.yandex.practicum.repository.ActionRepository;
-import ru.yandex.practicum.repository.ConditionRepository;
-import ru.yandex.practicum.repository.ScenarioActionRepository;
-import ru.yandex.practicum.repository.ScenarioConditionRepository;
-import ru.yandex.practicum.repository.ScenarioRepository;
-import ru.yandex.practicum.repository.SensorRepository;
+import ru.yandex.practicum.model.*;
+import ru.yandex.practicum.repository.*;
 
 @Slf4j
 @Component
@@ -39,91 +27,81 @@ public class ScenarioAddedHandler implements HubEventHandler {
     }
 
     @Transactional
-    @Override
     public void handle(HubEventAvro hub) {
-        Scenario scenario = getScenario(hub);
-        removeExistingScenarioData(scenario);
-        processConditions(scenario, hub);
-        processActions(scenario, hub);
+        ScenarioAddedEventAvro avro = (ScenarioAddedEventAvro) hub.getPayload();
+        log.info("DEBUG: Пытаюсь сохранить сценарий {} для хаба {}", avro.getName(), hub.getHubId());
+
+        scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
+                .ifPresent(scenarioRepository::delete);
+                    scenarioRepository.flush();
+
+        Scenario scenario = scenarioRepository.save(Scenario.builder()
+                .hubId(hub.getHubId())
+                .name(avro.getName())
+                .build());
+
+        processConditions(scenario, avro, hub.getHubId());
+        processActions(scenario, avro, hub.getHubId());
+
+        scenarioRepository.save(scenario);
+        log.info("DEBUG: Сценарий сохранен в базу");
+        log.info("Сценарий '{}' для хаба {} успешно сохранен.", avro.getName(), hub.getHubId());
     }
 
-    private ScenarioAddedEventAvro getScenarioAddedAvro(HubEventAvro hub) {
-        return (ScenarioAddedEventAvro) hub.getPayload();
-    }
-
-    private Scenario getScenario(HubEventAvro hub) {
-        ScenarioAddedEventAvro avro = getScenarioAddedAvro(hub);
-        return scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
-                .orElseGet(() -> scenarioRepository.save(
-                        Scenario.builder()
-                                .hubId(hub.getHubId())
-                                .name(avro.getName())
-                                .build()));
-    }
-
-    private void removeExistingScenarioData(Scenario scenario) {
-        scenarioActionRepository.deleteByScenario(scenario);
-        scenarioConditionRepository.deleteByScenario(scenario);
-    }
-
-    private void processActions(Scenario scenario, HubEventAvro hub) {
-        ScenarioAddedEventAvro avro = getScenarioAddedAvro(hub);
-        avro.getActions().forEach(aDto -> {
-            Sensor sensor = sensorRepository.findById(aDto.getSensorId())
-                    .orElseGet(() -> sensorRepository.save(
-                            Sensor.builder()
-                                    .id(aDto.getSensorId())
-                                    .hubId(hub.getHubId())
-                                    .build()));
-            Action action = actionRepository.save(
-                    Action.builder()
-                            .type(aDto.getType())
-                            .value(aDto.getValue())
-                            .build());
-            scenarioActionRepository.save(
-                    ScenarioAction.builder()
-                            .scenario(scenario)
-                            .sensor(sensor)
-                            .action(action)
-                            .id(new ScenarioActionId(
-                                    scenario.getId(),
-                                    sensor.getId(),
-                                    action.getId()))
-                            .build());
-        });
-    }
-
-    private void processConditions(Scenario scenario, HubEventAvro hub) {
-        ScenarioAddedEventAvro avro = getScenarioAddedAvro(hub);
+    private void processConditions(Scenario scenario, ScenarioAddedEventAvro avro, String hubId) {
         avro.getConditions().forEach(cDto -> {
             Sensor sensor = sensorRepository.findById(cDto.getSensorId())
-                    .orElseGet(() -> sensorRepository.save(
-                            Sensor.builder()
-                                    .id(cDto.getSensorId())
-                                    .hubId(hub.getHubId())
-                                    .build()));
-            Condition condition = conditionRepository.save(
-                    Condition.builder()
-                            .type(cDto.getType())
-                            .operation(cDto.getOperation())
-                            .value(asInteger(cDto.getValue()))
-                            .build());
-            scenarioConditionRepository.save(
+                    .orElseGet(() -> sensorRepository.save(Sensor.builder()
+                            .id(cDto.getSensorId())
+                            .hubId(hubId)
+                            .build()));
+
+            Condition condition = conditionRepository.save(Condition.builder()
+                    .type(cDto.getType())
+                    .operation(cDto.getOperation())
+                    .value(asInteger(cDto.getValue()))
+                    .build());
+
+            ScenarioCondition scenarioCondition = scenarioConditionRepository.save(
                     ScenarioCondition.builder()
                             .scenario(scenario)
                             .sensor(sensor)
                             .condition(condition)
-                            .id(new ScenarioConditionId(
-                                    scenario.getId(),
-                                    sensor.getId(),
-                                    condition.getId()))
+                            .id(new ScenarioConditionId(scenario.getId(), sensor.getId()))
                             .build());
+
+            scenario.getConditions().add(scenarioCondition);
+        });
+    }
+
+    private void processActions(Scenario scenario, ScenarioAddedEventAvro avro, String hubId) {
+        avro.getActions().forEach(aDto -> {
+            Sensor sensor = sensorRepository.findById(aDto.getSensorId())
+                    .orElseGet(() -> sensorRepository.save(Sensor.builder()
+                            .id(aDto.getSensorId())
+                            .hubId(hubId)
+                            .build()));
+
+            Action action = actionRepository.save(Action.builder()
+                    .type(aDto.getType())
+                    .value(aDto.getValue())
+                    .build());
+
+            ScenarioAction scenarioAction = scenarioActionRepository.save(
+                    ScenarioAction.builder()
+                            .scenario(scenario)
+                            .sensor(sensor)
+                            .action(action)
+                            .id(new ScenarioActionId(scenario.getId(), sensor.getId()))
+                            .build());
+
+            scenario.getActions().add(scenarioAction);
         });
     }
 
     private Integer asInteger(Object value) {
-        return value instanceof Integer
-                ? (Integer) value
-                : ((Boolean) value ? 1 : 0);
+        if (value instanceof Integer) return (Integer) value;
+        if (value instanceof Boolean) return (Boolean) value ? 1 : 0;
+        return 0;
     }
 }

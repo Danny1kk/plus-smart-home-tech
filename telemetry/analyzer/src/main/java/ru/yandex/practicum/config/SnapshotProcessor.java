@@ -2,13 +2,14 @@ package ru.yandex.practicum.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.WakeupException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
-import ru.yandex.practicum.service.ScenarioAnalyzerService;
+import ru.yandex.practicum.service.snapshot.SnapshotHandler;
+import jakarta.annotation.PostConstruct;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -17,29 +18,48 @@ import java.util.Collections;
 @Component
 @RequiredArgsConstructor
 public class SnapshotProcessor {
+
     private final KafkaConsumer<String, SensorsSnapshotAvro> snapshotConsumer;
-    private final ScenarioAnalyzerService scenarioAnalyzerService;
+    private final SnapshotHandler snapshotHandler;
 
+    @Value("${analyzer.topic.snapshots-topic:telemetry.snapshots.v1}")
+    private String snapshotTopic;
+
+    @PostConstruct
     public void start() {
-        try {
-            snapshotConsumer.subscribe(Collections.singletonList("telemetry.snapshots.v1"));
-            log.info("SnapshotProcessor запущен, подписка на топик telemetry.snapshots.v1 оформлена");
+        Thread thread = new Thread(() -> {
+            try {
+                snapshotConsumer.subscribe(Collections.singletonList(snapshotTopic));
+                log.info("SnapshotProcessor запущен, подписка на топик {}", snapshotTopic);
 
-            while (true) {
-                ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofMillis(1000));
-                for (ConsumerRecord<String, SensorsSnapshotAvro> record : records) {
-                    log.info("Получен снимок состояния (snapshot) для хаба: {}", record.key());
-                    scenarioAnalyzerService.analyze(record.value());
+                while (!Thread.currentThread().isInterrupted()) {
+                    ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofSeconds(1));
+                    for (var record : records) {
+                        log.info("Получен снапшот для хаба: {}", record.key());
+                        if (record.value() != null) {
+                            snapshotHandler.handle(record.value());
+                        }
+                    }
+                    if (!records.isEmpty()) {
+                        snapshotConsumer.commitSync();
+                    }
                 }
-                if (!records.isEmpty()) {
-                    snapshotConsumer.commitSync();
+            } catch (WakeupException e) {
+                log.info("SnapshotProcessor получил сигнал остановки (wakeup).");
+            } catch (Exception e) {
+                log.error("Критическая ошибка в SnapshotProcessor", e);
+            } finally {
+                try {
+                    snapshotConsumer.close();
+                } catch (Exception e) {
+                    log.error("Ошибка при закрытии snapshotConsumer", e);
                 }
+                log.info("SnapshotProcessor: consumer закрыт.");
             }
-        } catch (WakeupException e) {
-            log.info("SnapshotProcessor получил сигнал остановки (wakeup).");
-        } finally {
-            snapshotConsumer.close();
-        }
+        });
+        thread.setName("SnapshotProcessor-Thread");
+        thread.start();
+        log.info("Поток SnapshotProcessor успешно запущен");
     }
 }
 

@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS scenario_actions (
 
 CREATE OR REPLACE FUNCTION check_hub_id()
 RETURNS TRIGGER AS
+DECLARE
+    scenario_hub VARCHAR;
+    sensor_hub VARCHAR;
+BEGIN
 '
 BEGIN
     IF (SELECT hub_id FROM scenarios WHERE id = NEW.scenario_id) != (SELECT hub_id FROM sensors WHERE id = NEW.sensor_id) THEN

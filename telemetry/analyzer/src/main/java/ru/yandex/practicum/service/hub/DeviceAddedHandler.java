@@ -18,7 +18,7 @@ public class DeviceAddedHandler implements HubEventHandler {
 
     @Override
     public String getPayloadType() {
-        return DeviceAddedEventAvro.class.getSimpleName();
+        return "DeviceAddedEventAvro";
     }
 
     @Transactional

@@ -50,4 +50,18 @@ services:
                 kafka-topics --create --topic telemetry.hubs.v1 \
                              --partitions 1 --replication-factor 1 --if-not-exists \
                              --bootstrap-server kafka:29092'"
-    init: true
+
+  postgres:
+      image: postgres:15
+      container_name: postgres-db
+      ports:
+        - "5433:5432"
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: smarthome
+      healthcheck:
+        test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+        interval: 5s
+        timeout: 5s
+        retries: 5
