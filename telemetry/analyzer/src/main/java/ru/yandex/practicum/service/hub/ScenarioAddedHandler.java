@@ -27,13 +27,14 @@ public class ScenarioAddedHandler implements HubEventHandler {
     }
 
     @Transactional
+    @Override
     public void handle(HubEventAvro hub) {
         ScenarioAddedEventAvro avro = (ScenarioAddedEventAvro) hub.getPayload();
         log.info("DEBUG: Пытаюсь сохранить сценарий {} для хаба {}", avro.getName(), hub.getHubId());
 
         scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
                 .ifPresent(scenarioRepository::delete);
-                    scenarioRepository.flush();
+        scenarioRepository.flush();
 
         Scenario scenario = scenarioRepository.save(Scenario.builder()
                 .hubId(hub.getHubId())
@@ -44,8 +45,10 @@ public class ScenarioAddedHandler implements HubEventHandler {
         processActions(scenario, avro, hub.getHubId());
 
         scenarioRepository.save(scenario);
-        log.info("DEBUG: Сценарий сохранен в базу");
-        log.info("Сценарий '{}' для хаба {} успешно сохранен.", avro.getName(), hub.getHubId());
+        scenarioRepository.flush();
+
+        log.info("DEBUG: Сценарий успешно сохранен со всеми связями");
+
     }
 
     private void processConditions(Scenario scenario, ScenarioAddedEventAvro avro, String hubId) {
@@ -81,6 +84,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
                     .orElseGet(() -> sensorRepository.save(Sensor.builder()
                             .id(aDto.getSensorId())
                             .hubId(hubId)
+                            .sensorType(aDto.getType() != null ? aDto.getType().name() : null)
                             .build()));
 
             Action action = actionRepository.save(Action.builder()
