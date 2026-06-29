@@ -110,7 +110,7 @@ public class SnapshotHandler {
             return switch (opName) {
                 case "EQUALS" -> Math.abs(current - target) < 0.0001;
                 case "GREATER_THAN" -> current > target;
-                case "LESS_THAN\", \"LOWER_THAN" -> current < target;
+                case "LESS_THAN", "LOWER_THAN" -> current < target;
                 default -> false;
             };
         } catch (NumberFormatException e) {
@@ -137,40 +137,28 @@ public class SnapshotHandler {
         try {
             result = switch (typeName) {
                 case "MOTION" -> {
-                    if (data instanceof MotionSensorAvro motion) {
-                        yield handleOperation(condition, String.valueOf(motion.getMotion()), typeName);
-                    }
-                    yield false;
+                    MotionSensorAvro motion = (MotionSensorAvro) data;
+                    yield handleOperation(condition, String.valueOf(motion.getMotion()), typeName);
                 }
                 case "LUMINOSITY" -> {
-                    if (data instanceof LightSensorAvro light) {
-                        yield handleOperation(condition, String.valueOf(light.getLuminosity()), typeName);
-                    }
-                    yield false;
+                    LightSensorAvro light = (LightSensorAvro) data;
+                    yield handleOperation(condition, String.valueOf(light.getLuminosity()), typeName);
                 }
                 case "SWITCH" -> {
-                    if (data instanceof SwitchSensorAvro sw) {
-                        yield handleOperation(condition, String.valueOf(sw.getState()), typeName);
-                    }
-                    yield false;
+                    SwitchSensorAvro sw = (SwitchSensorAvro) data;
+                    yield handleOperation(condition, String.valueOf(sw.getState()), typeName);
                 }
                 case "TEMPERATURE" -> {
-                    if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, String.valueOf(climate.getTemperatureC()), typeName);
-                    }
-                    yield false;
+                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                    yield handleOperation(condition, String.valueOf(climate.getTemperatureC()), typeName);
                 }
                 case "CO2LEVEL" -> {
-                    if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, String.valueOf(climate.getCo2Level()), typeName);
-                    }
-                    yield false;
+                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                    yield handleOperation(condition, String.valueOf(climate.getCo2Level()), typeName);
                 }
                 case "HUMIDITY" -> {
-                    if (data instanceof ClimateSensorAvro climate) {
-                        yield handleOperation(condition, String.valueOf(climate.getHumidity()), typeName);
-                    }
-                    yield false;
+                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
+                    yield handleOperation(condition, String.valueOf(climate.getHumidity()), typeName);
                 }
                 default -> false;
             };
