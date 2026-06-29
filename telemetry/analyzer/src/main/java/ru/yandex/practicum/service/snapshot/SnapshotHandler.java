@@ -97,8 +97,9 @@ public class SnapshotHandler {
             if (!"EQUALS".equals(opName)) {
                 return false;
             }
-            boolean targetBool = targetValue.equals("true") || targetValue.equals("1");
-            boolean currentBool = currentValue.equals("true") || currentValue.equals("1");
+            boolean targetBool = "true".equalsIgnoreCase(targetValue) || "1".equals(targetValue);
+            boolean currentBool = "true".equalsIgnoreCase(currentValue) || "1".equals(currentValue);
+
             return targetBool == currentBool;
         }
 

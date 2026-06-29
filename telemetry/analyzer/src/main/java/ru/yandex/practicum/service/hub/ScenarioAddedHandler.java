@@ -54,6 +54,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
                     .orElseGet(() -> sensorRepository.save(Sensor.builder()
                             .id(cDto.getSensorId())
                             .hubId(hubId)
+                            .sensorType(cDto.getType().name())
                             .build()));
 
             Condition condition = conditionRepository.save(Condition.builder()
@@ -100,8 +101,26 @@ public class ScenarioAddedHandler implements HubEventHandler {
     }
 
     private Integer asInteger(Object value) {
-        if (value instanceof Integer) return (Integer) value;
-        if (value instanceof Boolean) return (Boolean) value ? 1 : 0;
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Integer) {
+            return (Integer) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value ? 1 : 0;
+        }
+        if (value instanceof String || value instanceof CharSequence) {
+            try {
+                return Integer.parseInt(value.toString());
+            } catch (NumberFormatException e) {
+                log.warn("Не удалось распарсить строку в Integer: {}", value);
+                return 0;
+            }
+        }
         return 0;
     }
 }
