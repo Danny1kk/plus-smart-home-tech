@@ -38,7 +38,10 @@ public class HubRouterClient {
                         .setType(protoType)
                         .setSensorId(sensorId);
 
-        if (action.getValue() != null) {
+        if (action.getValue() != null
+                && protoType != ActionTypeProto.ACTIVATE
+                && protoType != ActionTypeProto.DEACTIVATE
+                && protoType != ActionTypeProto.INVERSE) {
             actionBuilder.setValue(action.getValue());
         }
 
