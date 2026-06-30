@@ -99,10 +99,10 @@ public class SnapshotHandler {
         String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
         String opName = condition.getOperation().name();
 
-        if ("true".equalsIgnoreCase(currentValue)) currentValue = "1";
-        if ("false".equalsIgnoreCase(currentValue)) currentValue = "0";
-        if ("true".equalsIgnoreCase(targetValue)) targetValue = "1";
-        if ("false".equalsIgnoreCase(targetValue)) targetValue = "0";
+        if ("true".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue)) currentValue = "1";
+        if ("false".equalsIgnoreCase(currentValue) || "off".equalsIgnoreCase(currentValue)) currentValue = "0";
+        if ("true".equalsIgnoreCase(targetValue) || "on".equalsIgnoreCase(targetValue)) targetValue = "1";
+        if ("false".equalsIgnoreCase(targetValue) || "off".equalsIgnoreCase(targetValue)) targetValue = "0";
 
         try {
             double current = Double.parseDouble(currentValue);
