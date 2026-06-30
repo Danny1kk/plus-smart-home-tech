@@ -31,6 +31,11 @@ public class SnapshotHandler {
     @Transactional(readOnly = true)
     public void handle(SensorsSnapshotAvro sensorsSnapshotAvro) {
         String hubId = sensorsSnapshotAvro.getHubId();
+        log.info("Пытаюсь найти сценарии для hubId из Avro-объекта: '{}'", hubId);
+
+        if (hubId == null || hubId.isBlank()) {
+            log.error("КРИТИЧЕСКАЯ ОШИБКА: Из Кафки пришел снапшот с пустым hubId внутри Avro!");
+        }
 
         List<Scenario> scenariosList = scenarioRepository.findByHubId(hubId);
 
@@ -145,37 +150,37 @@ public class SnapshotHandler {
         return switch (conditionType.toUpperCase()) {
             case "MOTION" -> {
                 if (data instanceof MotionSensorAvro motion) {
-                    yield String.valueOf(motion.get(1));
+                    yield String.valueOf(motion.getMotion());
                 }
                 yield null;
             }
             case "LUMINOSITY" -> {
                 if (data instanceof LightSensorAvro light) {
-                    yield String.valueOf(light.get(1));
+                    yield String.valueOf(light.getLuminosity());
                 }
                 yield null;
             }
             case "SWITCH" -> {
                 if (data instanceof SwitchSensorAvro sw) {
-                    yield String.valueOf(sw.get(0));
+                    yield String.valueOf(sw.getState());
                 }
                 yield null;
             }
             case "TEMPERATURE" -> {
                 if (data instanceof ClimateSensorAvro climate) {
-                    yield String.valueOf(climate.get(0));
+                    yield String.valueOf(climate.getTemperatureC());
                 }
                 yield null;
             }
             case "CO2LEVEL" -> {
                 if (data instanceof ClimateSensorAvro climate) {
-                    yield String.valueOf(climate.get(2));
+                    yield String.valueOf(climate.getCo2Level());
                 }
                 yield null;
             }
             case "HUMIDITY" -> {
                 if (data instanceof ClimateSensorAvro climate) {
-                    yield String.valueOf(climate.get(1));
+                    yield String.valueOf(climate.getHumidity());
                 }
                 yield null;
             }
