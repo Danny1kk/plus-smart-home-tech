@@ -93,15 +93,20 @@ public class SnapshotHandler {
         String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
         String opName = condition.getOperation().name();
 
-        if ("SWITCH".equals(typeName) || "MOTION".equals(typeName)) {
-            if (!"EQUALS".equals(opName)) {
-                return false;
-            }
-            boolean targetBool = "true".equalsIgnoreCase(targetValue) || "1".equals(targetValue);
-            boolean currentBool = "true".equalsIgnoreCase(currentValue) || "1".equals(currentValue);
+//        if ("SWITCH".equals(typeName) || "MOTION".equals(typeName)) {
+//            if (!"EQUALS".equals(opName)) {
+//                return false;
+//            }
+//            boolean targetBool = "true".equalsIgnoreCase(targetValue) || "1".equals(targetValue);
+//            boolean currentBool = "true".equalsIgnoreCase(currentValue) || "1".equals(currentValue);
+//
+//            return targetBool == currentBool;
+//        }
 
-            return targetBool == currentBool;
-        }
+        if ("true".equalsIgnoreCase(currentValue)) currentValue = "1";
+        if ("false".equalsIgnoreCase(currentValue)) currentValue = "0";
+        if ("true".equalsIgnoreCase(targetValue)) targetValue = "1";
+        if ("false".equalsIgnoreCase(targetValue)) targetValue = "0";
 
         try {
             double current = Double.parseDouble(currentValue);

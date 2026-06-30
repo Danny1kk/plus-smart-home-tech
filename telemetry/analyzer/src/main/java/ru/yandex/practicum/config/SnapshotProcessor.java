@@ -1,5 +1,6 @@
 package ru.yandex.practicum.config;
 
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -25,7 +26,6 @@ public class SnapshotProcessor {
     @Value("${analyzer.topic.snapshots-topic:telemetry.snapshots.v1}")
     private String snapshotTopic;
 
-    @PostConstruct
     public void start() {
         Thread thread = new Thread(() -> {
             try {
@@ -60,6 +60,12 @@ public class SnapshotProcessor {
         thread.setName("SnapshotProcessor-Thread");
         thread.start();
         log.info("Поток SnapshotProcessor успешно запущен");
+    }
+
+    @PreDestroy
+    public void stop() {
+        log.info("Инициирован graceful shutdown для SnapshotProcessor...");
+        snapshotConsumer.wakeup();
     }
 }
 

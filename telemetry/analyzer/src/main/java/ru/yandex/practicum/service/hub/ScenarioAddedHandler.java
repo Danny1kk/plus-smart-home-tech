@@ -39,9 +39,12 @@ public class ScenarioAddedHandler implements HubEventHandler {
                         .build());
 
         if (scenario.getId() != null) {
+            scenarioConditionRepository.deleteByScenarioId(scenario.getId());
+            scenarioActionRepository.deleteByScenarioId(scenario.getId());
+
             scenario.getConditions().clear();
             scenario.getActions().clear();
-            scenarioRepository.saveAndFlush(scenario);
+            scenarioRepository.flush();
         } else {
             scenario = scenarioRepository.save(scenario);
         }

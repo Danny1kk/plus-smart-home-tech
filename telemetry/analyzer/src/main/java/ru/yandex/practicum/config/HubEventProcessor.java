@@ -1,9 +1,11 @@
 package ru.yandex.practicum.config;
 
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.model.*;
@@ -13,8 +15,6 @@ import ru.yandex.practicum.service.hub.HubEventHandler;
 
 import java.time.Duration;
 import java.util.Collections;
-
-
 
 @Slf4j
 @Component
@@ -42,12 +42,24 @@ public class HubEventProcessor implements Runnable {
                     hubEventConsumer.commitSync();
                 }
             }
+        } catch (WakeupException e) {
+            log.info("HubEventProcessor получил сигнал остановки (wakeup).");
         } catch (Exception e) {
             log.error("Ошибка в HubEventProcessor", e);
         } finally {
-            hubEventConsumer.close();
-            log.info("HubEventProcessor завершил работу");
+            try {
+                hubEventConsumer.close();
+            } catch (Exception e) {
+                log.error("Ошибка при закрытии hubEventConsumer", e);
+            }
+            log.info("HubEventProcessor завершил работу, consumer закрыт.");
         }
+    }
+
+    @PreDestroy
+    public void stop() {
+        log.info("Инициирован graceful shutdown для HubEventProcessor...");
+        hubEventConsumer.wakeup();
     }
 
     private void handleHubEvent(HubEventAvro event) {
