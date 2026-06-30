@@ -31,34 +31,23 @@ public class SnapshotHandler {
     @Transactional(readOnly = true)
     public void handle(SensorsSnapshotAvro sensorsSnapshotAvro) {
         String hubId = sensorsSnapshotAvro.getHubId();
-        log.info("Пытаюсь найти сценарии для hubId из Avro-объекта: '{}'", hubId);
-
         if (hubId == null || hubId.isBlank()) {
-            log.error("КРИТИЧЕСКАЯ ОШИБКА: Из Кафки пришел снапшот с пустым hubId внутри Avro!");
+            log.error("КРИТИЧЕСКАЯ ОШИБКА: Из Кафки пришел снапшот с пустым hubId!");
+            return;
         }
 
         List<Scenario> scenariosList = scenarioRepository.findByHubId(hubId);
 
-        log.info("DEBUG_LOG: Анализатор получил снапшот для хаба '{}'. Найдено сценариев в БД: {}",
-                hubId, (scenariosList != null ? scenariosList.size() : "NULL"));
-
         if (scenariosList == null || scenariosList.isEmpty()) {
-            log.info("DEBUG_LOG: Сценарии не найдены, прекращаю анализ для хаба '{}'", hubId);
             return;
         }
 
         Map<String, SensorStateAvro> sensorStateMap = sensorsSnapshotAvro.getSensorsState();
 
         scenariosList.forEach(scenario -> {
-            log.info("DEBUG_LOG: Проверяю сценарий '{}'. Условий в БД: {}",
-                    scenario.getName(),
-                    (scenario.getConditions() != null ? scenario.getConditions().size() : "NULL"));
-
             if (handleScenario(scenario, sensorStateMap)) {
                 log.info("DEBUG_LOG: !!! УСЛОВИЯ СЦЕНАРИЯ '{}' ВЫПОЛНЕНЫ !!!", scenario.getName());
                 sendScenarioAction(scenario, sensorsSnapshotAvro);
-            } else {
-                log.info("DEBUG_LOG: Условия сценария '{}' НЕ выполнены", scenario.getName());
             }
         });
     }
@@ -81,7 +70,7 @@ public class SnapshotHandler {
         List<ScenarioCondition> scenarioConditions = scenario.getConditions();
 
         if (scenarioConditions == null || scenarioConditions.isEmpty()) {
-            return false;
+            return true;
         }
 
         return scenarioConditions.stream()
@@ -97,16 +86,12 @@ public class SnapshotHandler {
         }
 
         String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
-        String opName = condition.getOperation().name();
+        String opName = condition.getOperation().name().toUpperCase();
 
-        if ("true".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue)) currentValue = "1";        if ("false".equalsIgnoreCase(currentValue) || "off".equalsIgnoreCase(currentValue)) currentValue = "0";
+        if ("true".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue)) currentValue = "1";
         if ("false".equalsIgnoreCase(currentValue) || "off".equalsIgnoreCase(currentValue)) currentValue = "0";
         if ("true".equalsIgnoreCase(targetValue) || "on".equalsIgnoreCase(targetValue)) targetValue = "1";
         if ("false".equalsIgnoreCase(targetValue) || "off".equalsIgnoreCase(targetValue)) targetValue = "0";
-        
-        if (opName.equals("EQUALS") && (!isNumeric(currentValue) || !isNumeric(targetValue))) {
-            return currentValue.equalsIgnoreCase(targetValue);
-        }
 
         try {
             double current = Double.parseDouble(currentValue);
@@ -125,17 +110,11 @@ public class SnapshotHandler {
         }
     }
 
-    private boolean isNumeric(String str) {
-        if (str == null) return false;
-        try {
-            Double.parseDouble(str);
-            return true;
-        } catch (NumberFormatException e) {
+    private boolean checkCondition(Condition condition, String sensorId, Map<String, SensorStateAvro> sensorStateMap) {
+        if (sensorStateMap == null || !sensorStateMap.containsKey(sensorId)) {
             return false;
         }
-    }
 
-    private boolean checkCondition(Condition condition, String sensorId, Map<String, SensorStateAvro> sensorStateMap) {
         SensorStateAvro sensorState = sensorStateMap.get(sensorId);
         if (sensorState == null || condition.getType() == null) {
             return false;
