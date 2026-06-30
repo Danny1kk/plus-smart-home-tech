@@ -85,6 +85,7 @@ public class SnapshotHandler {
                         sensorStateMap));
     }
 
+
     private boolean handleOperation(Condition condition, String currentValue, String typeName) {
         if (condition.getOperation() == null || currentValue == null) {
             return false;
@@ -92,16 +93,6 @@ public class SnapshotHandler {
 
         String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
         String opName = condition.getOperation().name();
-
-//        if ("SWITCH".equals(typeName) || "MOTION".equals(typeName)) {
-//            if (!"EQUALS".equals(opName)) {
-//                return false;
-//            }
-//            boolean targetBool = "true".equalsIgnoreCase(targetValue) || "1".equals(targetValue);
-//            boolean currentBool = "true".equalsIgnoreCase(currentValue) || "1".equals(currentValue);
-//
-//            return targetBool == currentBool;
-//        }
 
         if ("true".equalsIgnoreCase(currentValue)) currentValue = "1";
         if ("false".equalsIgnoreCase(currentValue)) currentValue = "0";
@@ -125,56 +116,72 @@ public class SnapshotHandler {
         }
     }
 
-    private boolean checkCondition(Condition condition, String sensorId,
-                                   Map<String, SensorStateAvro> sensorStateMap) {
-
+    private boolean checkCondition(Condition condition, String sensorId, Map<String, SensorStateAvro> sensorStateMap) {
         SensorStateAvro sensorState = sensorStateMap.get(sensorId);
         if (sensorState == null || condition.getType() == null) {
             return false;
         }
 
         String typeName = condition.getType().name();
-        Object data = sensorState.getData();
-        if (data == null) return false;
+        String currentValue = getSensorValue(sensorState, typeName);
 
-        boolean result = false;
-
-        try {
-            result = switch (typeName) {
-                case "MOTION" -> {
-                    MotionSensorAvro motion = (MotionSensorAvro) data;
-                    yield handleOperation(condition, String.valueOf(motion.getMotion()), typeName);
-                }
-                case "LUMINOSITY" -> {
-                    LightSensorAvro light = (LightSensorAvro) data;
-                    yield handleOperation(condition, String.valueOf(light.getLuminosity()), typeName);
-                }
-                case "SWITCH" -> {
-                    SwitchSensorAvro sw = (SwitchSensorAvro) data;
-                    yield handleOperation(condition, String.valueOf(sw.getState()), typeName);
-                }
-                case "TEMPERATURE" -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
-                    yield handleOperation(condition, String.valueOf(climate.getTemperatureC()), typeName);
-                }
-                case "CO2LEVEL" -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
-                    yield handleOperation(condition, String.valueOf(climate.getCo2Level()), typeName);
-                }
-                case "HUMIDITY" -> {
-                    ClimateSensorAvro climate = (ClimateSensorAvro) data;
-                    yield handleOperation(condition, String.valueOf(climate.getHumidity()), typeName);
-                }
-                default -> false;
-            };
-        } catch (Exception e) {
-            log.error("Ошибка при разборе данных датчика {}: ", sensorId, e);
+        if (currentValue == null) {
             return false;
         }
 
+        boolean result = handleOperation(condition, currentValue, typeName);
+
         log.info("Проверяю условие датчика {}: тип={}, операция={}, эталон={}, текущее={}, результат: {}",
-                sensorId, typeName, condition.getOperation(), condition.getValue(), sensorState.getData(), result);
+                sensorId, typeName, condition.getOperation(), condition.getValue(), currentValue, result);
 
         return result;
+    }
+
+    private String getSensorValue(SensorStateAvro state, String conditionType) {
+        if (state == null || state.getData() == null) return null;
+
+        Object data = state.getData();
+
+        return switch (conditionType.toUpperCase()) {
+            case "MOTION" -> {
+                if (data instanceof MotionSensorAvro motion) {
+                    yield String.valueOf(motion.getMotion());
+                }
+                yield null;
+            }
+            case "LUMINOSITY" -> {
+                if (data instanceof LightSensorAvro light) {
+                    yield String.valueOf(light.getLuminosity());
+                }
+                yield null;
+            }
+            case "SWITCH" -> {
+                if (data instanceof SwitchSensorAvro sw) {
+                    yield String.valueOf(sw.getState());
+                }
+                yield null;
+            }
+            case "TEMPERATURE" -> {
+                if (data instanceof ClimateSensorAvro climate) {
+                    Object temp = climate.get("temperature");
+                    if (temp == null) temp = climate.get("temperature_c");
+                    yield temp != null ? temp.toString() : null;
+                }
+                yield null;
+            }
+            case "CO2LEVEL" -> {
+                if (data instanceof ClimateSensorAvro climate) {
+                    yield String.valueOf(climate.getCo2Level());
+                }
+                yield null;
+            }
+            case "HUMIDITY" -> {
+                if (data instanceof ClimateSensorAvro climate) {
+                    yield String.valueOf(climate.getHumidity());
+                }
+                yield null;
+            }
+            default -> null;
+        };
     }
 }
