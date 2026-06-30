@@ -88,6 +88,16 @@ public class SnapshotHandler {
         String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
         String opName = condition.getOperation().name().toUpperCase();
 
+        if (opName.equals("EQUALS")) {
+            if (currentValue.equalsIgnoreCase(targetValue)) return true;
+
+            boolean currentBool = "true".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue) || "1".equals(currentValue);
+            boolean targetBool = "true".equalsIgnoreCase(targetValue) || "on".equalsIgnoreCase(targetValue) || "1".equals(targetValue);
+            if (currentBool == targetBool && ("true".equalsIgnoreCase(currentValue) || "false".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue) || "off".equalsIgnoreCase(currentValue))) {
+                return true;
+            }
+        }
+
         if ("true".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue)) currentValue = "1";
         if ("false".equalsIgnoreCase(currentValue) || "off".equalsIgnoreCase(currentValue)) currentValue = "0";
         if ("true".equalsIgnoreCase(targetValue) || "on".equalsIgnoreCase(targetValue)) targetValue = "1";
