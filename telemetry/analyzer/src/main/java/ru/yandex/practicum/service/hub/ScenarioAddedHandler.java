@@ -32,14 +32,19 @@ public class ScenarioAddedHandler implements HubEventHandler {
         ScenarioAddedEventAvro avro = (ScenarioAddedEventAvro) hub.getPayload();
         log.info("DEBUG: Пытаюсь сохранить сценарий {} для хаба {}", avro.getName(), hub.getHubId());
 
-        scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
-                .ifPresent(scenarioRepository::delete);
-        scenarioRepository.flush();
+        Scenario scenario = scenarioRepository.findByHubIdAndName(hub.getHubId(), avro.getName())
+                .orElseGet(() -> Scenario.builder()
+                        .hubId(hub.getHubId())
+                        .name(avro.getName())
+                        .build());
 
-        Scenario scenario = scenarioRepository.save(Scenario.builder()
-                .hubId(hub.getHubId())
-                .name(avro.getName())
-                .build());
+        if (scenario.getId() != null) {
+            scenario.getConditions().clear();
+            scenario.getActions().clear();
+            scenarioRepository.saveAndFlush(scenario);
+        } else {
+            scenario = scenarioRepository.save(scenario);
+        }
 
         processConditions(scenario, avro, hub.getHubId());
         processActions(scenario, avro, hub.getHubId());
@@ -47,8 +52,7 @@ public class ScenarioAddedHandler implements HubEventHandler {
         scenarioRepository.save(scenario);
         scenarioRepository.flush();
 
-        log.info("DEBUG: Сценарий успешно сохранен со всеми связями");
-
+        log.info("DEBUG: Сценарий {} успешно обновлен/сохранен со всеми связями", scenario.getName());
     }
 
     private void processConditions(Scenario scenario, ScenarioAddedEventAvro avro, String hubId) {
