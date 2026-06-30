@@ -25,16 +25,24 @@ import ru.yandex.practicum.model.hub.enums.ConditionType;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface HubEventProtoMapper {
 
+    @Mapping(target = "hubId", ignore = true)
+    @Mapping(target = "timestamp", ignore = true)
     @Mapping(target = "deviceType", source = "type")
     @ValueMapping(target = "MOTION_SENSOR", source = "UNRECOGNIZED")
     DeviceAddedEvent mapDeviceAddedProtoToModel(DeviceAddedEventProto deviceAddedEventProto);
 
+    @Mapping(target = "hubId", ignore = true)
+    @Mapping(target = "timestamp", ignore = true)
     DeviceRemovedEvent mapDeviceRemovedProtoToModel(DeviceRemovedEventProto deviceRemovedEventProto);
 
+    @Mapping(target = "hubId", ignore = true)
+    @Mapping(target = "timestamp", ignore = true)
     @Mapping(target = "conditions", source = "conditionsList")
     @Mapping(target = "actions", source = "actionsList")
     ScenarioAddedEvent mapScenarioAddedProtoToModel(ScenarioAddedEventProto scenarioAddedEventProto);
 
+    @Mapping(target = "hubId", ignore = true)
+    @Mapping(target = "timestamp", ignore = true)
     ScenarioRemovedEvent mapScenarioRemovedProtoToModel(ScenarioRemovedEventProto scenarioRemovedEventProto);
 
     @Mapping(target = "type", source = "type")

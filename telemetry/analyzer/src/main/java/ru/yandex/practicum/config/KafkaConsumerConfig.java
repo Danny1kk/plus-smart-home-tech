@@ -24,11 +24,12 @@ public class KafkaConsumerConfig {
                 environment.getProperty("spring.kafka.consumer.snapshots.key-deserializer"));
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 environment.getProperty("spring.kafka.consumer.snapshots.value-deserializer"));
-        config.put(ConsumerConfig.CLIENT_ID_CONFIG, environment.getProperty("spring.kafka.consumer.snapshots.client-id"));
         config.put(ConsumerConfig.GROUP_ID_CONFIG, environment.getProperty("spring.kafka.consumer.snapshots.group-id"));
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
                 environment.getProperty("spring.kafka.consumer.snapshots.enable-auto-commit"));
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put("schema.registry.url",
+                environment.getProperty("spring.kafka.properties.schema.registry.url", "http://localhost:8081"));
         return new KafkaConsumer<>(config);
     }
 
@@ -40,11 +41,12 @@ public class KafkaConsumerConfig {
                 environment.getProperty("spring.kafka.consumer.hub.key-deserializer"));
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 environment.getProperty("spring.kafka.consumer.hub.value-deserializer"));
-        config.put(ConsumerConfig.CLIENT_ID_CONFIG, environment.getProperty("spring.kafka.consumer.hub.client-id"));
         config.put(ConsumerConfig.GROUP_ID_CONFIG, environment.getProperty("spring.kafka.consumer.hub.group-id"));
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
                 environment.getProperty("spring.kafka.consumer.hub.enable-auto-commit"));
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        config.put("schema.registry.url",
+                environment.getProperty("spring.kafka.properties.schema.registry.url", "http://localhost:8081"));
         return new KafkaConsumer<>(config);
     }
 }

@@ -25,4 +25,6 @@ public class Sensor {
 
     @Column(name = "hub_id")
     String hubId;
+
+    private String sensorType;
 }

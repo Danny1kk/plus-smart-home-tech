@@ -69,4 +69,9 @@ public class Scenario {
         this.conditions.add(condition);
         condition.setScenario(this);
     }
+
+    public void addAction(ScenarioAction action) {
+        this.actions.add(action);
+        action.setScenario(this);
+    }
 }

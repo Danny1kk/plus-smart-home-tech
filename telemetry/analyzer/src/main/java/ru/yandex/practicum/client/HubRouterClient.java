@@ -33,6 +33,15 @@ public class HubRouterClient {
     public void sendAction(String hubId, String scenarioName, String sensorId, Action action, Instant timestamp) {
         ActionTypeProto protoType = ActionTypeProto.valueOf(action.getType().name());
 
+        ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto.Builder actionBuilder =
+                ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto.newBuilder()
+                        .setType(protoType)
+                        .setSensorId(sensorId);
+
+        if (action.getValue() != null) {
+            actionBuilder.setValue(action.getValue());
+        }
+
         DeviceActionRequest request = DeviceActionRequest.newBuilder()
                 .setHubId(hubId)
                 .setScenarioName(scenarioName)
@@ -40,11 +49,7 @@ public class HubRouterClient {
                         .setSeconds(timestamp.getEpochSecond())
                         .setNanos(timestamp.getNano())
                         .build())
-                .setAction(ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto.newBuilder()
-                        .setType(protoType)
-                        .setValue(action.getValue())
-                        .setSensorId(sensorId)
-                        .build())
+                .setAction(actionBuilder.build())
                 .build();
 
         sendAction(request);
