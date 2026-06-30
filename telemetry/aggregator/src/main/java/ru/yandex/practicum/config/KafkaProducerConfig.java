@@ -11,7 +11,6 @@ import org.springframework.core.env.Environment;
 
 import java.util.Properties;
 
-
 @Configuration
 @RequiredArgsConstructor
 public class KafkaProducerConfig {
