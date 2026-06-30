@@ -55,7 +55,8 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId> </dependency>
+            <artifactId>spring-kafka</artifactId>
+        </dependency>
         <dependency>
             <groupId>net.devh</groupId>
             <artifactId>grpc-client-spring-boot-starter</artifactId>
@@ -69,7 +70,8 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>1.65.1</version> </dependency>
+            <version>1.65.1</version>
+        </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
@@ -79,6 +81,11 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
             <version>1.65.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <version>7.5.0</version>
         </dependency>
     </dependencies>
 
@@ -100,5 +107,10 @@
                 </executions>
             </plugin>
         </plugins>
-    </build>
+    </build> <repositories>
+    <repository>
+        <id>confluent</id>
+        <url>https://packages.confluent.io/maven/</url>
+    </repository>
+</repositories>
 </project>

@@ -10,6 +10,7 @@ import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
+import io.confluent.kafka.serializers.KafkaAvroDeserializerConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +30,7 @@ public class KafkaConsumerConfig {
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, environment.getProperty("spring.kafka.consumer.snapshots.enable-auto-commit"));
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put("schema.registry.url", environment.getProperty("spring.kafka.properties.schema.registry.url", "http://localhost:8081"));
+        config.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, "true");
         return new DefaultKafkaConsumerFactory<>(config);
     }
 
@@ -49,6 +51,7 @@ public class KafkaConsumerConfig {
         config.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, environment.getProperty("spring.kafka.consumer.hub.enable-auto-commit"));
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         config.put("schema.registry.url", environment.getProperty("spring.kafka.properties.schema.registry.url", "http://localhost:8081"));
+        config.put(KafkaAvroDeserializerConfig.SPECIFIC_AVRO_READER_CONFIG, "true");
         return new DefaultKafkaConsumerFactory<>(config);
     }
 

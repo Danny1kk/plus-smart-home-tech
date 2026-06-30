@@ -273,31 +273,15 @@ public class AggregationStarter implements CommandLineRunner {
 === FILE: AnalyzerApp.java ===
 package ru.yandex.practicum;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.context.ConfigurableApplicationContext;
-import ru.yandex.practicum.config.HubEventProcessor;
-import ru.yandex.practicum.config.SnapshotProcessor;
 
-@Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class AnalyzerApp {
     public static void main(String[] args) {
-        ConfigurableApplicationContext context =
-                SpringApplication.run(AnalyzerApp.class, args);
-
-        final HubEventProcessor hubEventProcessor = context.getBean(HubEventProcessor.class);
-        final SnapshotProcessor snapshotProcessor = context.getBean(SnapshotProcessor.class);
-
-        Thread hubEventsThread = new Thread(hubEventProcessor);
-        hubEventsThread.setName("HubEventProcessor");
-        hubEventsThread.start();
-        log.info("РџРѕС‚РѕРє HubEventHandlerThread СѓСЃРїРµС€РЅРѕ Р·Р°РїСѓС‰РµРЅ.");
-
-        snapshotProcessor.start();
+        SpringApplication.run(AnalyzerApp.class, args);
     }
 }
 
@@ -372,78 +356,57 @@ public class HubRouterClient {
     }
 }
 
-=== FILE: HubEventProcessor.java ===
+=== FILE: AnalyzerEventsListener.java ===
 package ru.yandex.practicum.config;
 
-import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.errors.WakeupException;
-import org.springframework.beans.factory.annotation.Value;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.model.*;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
+import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.service.HubEventHandlerFactory;
 import ru.yandex.practicum.service.hub.HubEventHandler;
-
-import java.time.Duration;
-import java.util.Collections;
+import ru.yandex.practicum.service.snapshot.SnapshotHandler;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class HubEventProcessor implements Runnable {
+public class AnalyzerEventsListener {
 
-    private final KafkaConsumer<String, HubEventAvro> hubEventConsumer;
+    private final SnapshotHandler snapshotHandler;
     private final HubEventHandlerFactory handlerFactory;
 
-    @Value("${analyzer.topic.hub-events:telemetry.hubs.v1}")
-    private String hubEventsTopic;
-
-    @Override
-    public void run() {
-        try {
-            hubEventConsumer.subscribe(Collections.singletonList(hubEventsTopic));
-            log.info("HubEventProcessor РїРѕРґРїРёСЃР°РЅ РЅР° С‚РѕРїРёРє {}", hubEventsTopic);
-
-            while (!Thread.currentThread().isInterrupted()) {
-                ConsumerRecords<String, HubEventAvro> records = hubEventConsumer.poll(Duration.ofMillis(1000));
-                for (var record : records) {
-                    handleHubEvent(record.value());
-                }
-                if (!records.isEmpty()) {
-                    hubEventConsumer.commitSync();
-                }
-            }
-        } catch (WakeupException e) {
-            log.info("HubEventProcessor РїРѕР»СѓС‡РёР» СЃРёРіРЅР°Р» РѕСЃС‚Р°РЅРѕРІРєРё (wakeup).");
-        } catch (Exception e) {
-            log.error("РћС€РёР±РєР° РІ HubEventProcessor", e);
-        } finally {
-            try {
-                hubEventConsumer.close();
-            } catch (Exception e) {
-                log.error("РћС€РёР±РєР° РїСЂРё Р·Р°РєСЂС‹С‚РёРё hubEventConsumer", e);
-            }
-            log.info("HubEventProcessor Р·Р°РІРµСЂС€РёР» СЂР°Р±РѕС‚Сѓ, consumer Р·Р°РєСЂС‹С‚.");
+    @KafkaListener(
+            topics = "${analyzer.topic.snapshots-topic:telemetry.snapshots.v1}",
+            groupId = "${spring.kafka.consumer.snapshots.group-id}",
+            containerFactory = "snapshotListenerContainerFactory"
+    )
+    public void listenSnapshots(ConsumerRecord<String, SensorsSnapshotAvro> record) {
+        log.info("РџРѕР»СѓС‡РµРЅ СЃРЅР°РїС€РѕС‚ РґР»СЏ С…Р°Р±Р° РёР· Kafka: {}", record.key());
+        if (record.value() != null) {
+            snapshotHandler.handle(record.value());
         }
     }
 
-    @PreDestroy
-    public void stop() {
-        log.info("РРЅРёС†РёРёСЂРѕРІР°РЅ graceful shutdown РґР»СЏ HubEventProcessor...");
-        hubEventConsumer.wakeup();
-    }
+    @KafkaListener(
+            topics = "${analyzer.topic.hub-events:telemetry.hubs.v1}",
+            groupId = "${spring.kafka.consumer.hub.group-id}",
+            containerFactory = "hubListenerContainerFactory"
+    )
+    public void listenHubEvents(ConsumerRecord<String, HubEventAvro> record) {
+        if (record.value() != null) {
+            HubEventAvro event = record.value();
+            String payloadClassName = event.getPayload().getClass().getSimpleName();
+            log.info("РџРѕР»СѓС‡РµРЅРѕ СЃРѕР±С‹С‚РёРµ С…Р°Р±Р° РёР· Kafka, С‚РёРї: {}", payloadClassName);
 
-    private void handleHubEvent(HubEventAvro event) {
-        String payloadClassName = event.getPayload().getClass().getSimpleName();
-        HubEventHandler handler = handlerFactory.getHubMap().get(payloadClassName);
-        if (handler != null) {
-            handler.handle(event);
-        } else {
-            log.warn("РќРµ РЅР°Р№РґРµРЅ РѕР±СЂР°Р±РѕС‚С‡РёРє РґР»СЏ СЃРѕР±С‹С‚РёСЏ С‚РёРїР°: {}", payloadClassName);
+            HubEventHandler handler = handlerFactory.getHubMap().get(payloadClassName);
+            if (handler != null) {
+                handler.handle(event);
+            } else {
+                log.warn("РќРµ РЅР°Р№РґРµРЅ РѕР±СЂР°Р±РѕС‚С‡РёРє РґР»СЏ СЃРѕР±С‹С‚РёСЏ С‚РёРїР°: {}", payloadClassName);
+            }
         }
     }
 }
@@ -510,161 +473,6 @@ public class KafkaConsumerConfig {
         return factory;
     }
 }
-
-=== FILE: SnapshotProcessor.java ===
-package ru.yandex.practicum.config;
-
-import jakarta.annotation.PreDestroy;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.errors.WakeupException;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
-import ru.yandex.practicum.service.snapshot.SnapshotHandler;
-
-import java.time.Duration;
-import java.util.Collections;
-
-@Slf4j
-@Component
-@RequiredArgsConstructor
-public class SnapshotProcessor {
-
-    private final KafkaConsumer<String, SensorsSnapshotAvro> snapshotConsumer;
-    private final SnapshotHandler snapshotHandler;
-
-    @Value("${analyzer.topic.snapshots-topic:telemetry.snapshots.v1}")
-    private String snapshotTopic;
-
-    public void start() {
-        Thread thread = new Thread(() -> {
-            try {
-                snapshotConsumer.subscribe(Collections.singletonList(snapshotTopic));
-                log.info("SnapshotProcessor Р·Р°РїСѓС‰РµРЅ, РїРѕРґРїРёСЃРєР° РЅР° С‚РѕРїРёРє {}", snapshotTopic);
-
-                while (!Thread.currentThread().isInterrupted()) {
-                    ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofSeconds(1));
-                    for (var record : records) {
-                        log.info("РџРѕР»СѓС‡РµРЅ СЃРЅР°РїС€РѕС‚ РґР»СЏ С…Р°Р±Р°: {}", record.key());
-                        if (record.value() != null) {
-                            snapshotHandler.handle(record.value());
-                        }
-                    }
-                    if (!records.isEmpty()) {
-                        snapshotConsumer.commitSync();
-                    }
-                }
-            } catch (WakeupException e) {
-                log.info("SnapshotProcessor РїРѕР»СѓС‡РёР» СЃРёРіРЅР°Р» РѕСЃС‚Р°РЅРѕРІРєРё (wakeup).");
-            } catch (Exception e) {
-                log.error("РљСЂРёС‚РёС‡РµСЃРєР°СЏ РѕС€РёР±РєР° РІ SnapshotProcessor", e);
-            } finally {
-                try {
-                    snapshotConsumer.close();
-                } catch (Exception e) {
-                    log.error("РћС€РёР±РєР° РїСЂРё Р·Р°РєСЂС‹С‚РёРё snapshotConsumer", e);
-                }
-                log.info("SnapshotProcessor: consumer Р·Р°РєСЂС‹С‚.");
-            }
-        });
-        thread.setName("SnapshotProcessor-Thread");
-        thread.start();
-        log.info("РџРѕС‚РѕРє SnapshotProcessor СѓСЃРїРµС€РЅРѕ Р·Р°РїСѓС‰РµРЅ");
-    }
-
-    @PreDestroy
-    public void stop() {
-        log.info("РРЅРёС†РёРёСЂРѕРІР°РЅ graceful shutdown РґР»СЏ SnapshotProcessor...");
-        snapshotConsumer.wakeup();
-    }
-}
-
-//package ru.yandex.practicum.config;
-//
-//import lombok.RequiredArgsConstructor;
-//import lombok.extern.slf4j.Slf4j;
-//import org.apache.kafka.clients.consumer.ConsumerRecords;
-//import org.apache.kafka.clients.consumer.KafkaConsumer;
-//import org.apache.kafka.common.errors.WakeupException;
-//import org.springframework.beans.factory.SmartInitializingSingleton;
-//import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.stereotype.Component;
-//import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
-//import ru.yandex.practicum.service.snapshot.SnapshotHandler;
-//
-//import java.time.Duration;
-//import java.util.Collections;
-//
-//@Slf4j
-//@Component
-//@RequiredArgsConstructor
-//public class SnapshotProcessor implements SmartInitializingSingleton {
-//
-//    private final KafkaConsumer<String, SensorsSnapshotAvro> snapshotConsumer;
-//    private final SnapshotHandler snapshotHandler;
-//
-//    @Value("${analyzer.topic.snapshots-topic:telemetry.snapshots.v1}")
-//    private String snapshotTopic;
-//
-//    @Override
-//    public void afterSingletonsInstantiated() {
-//        Thread thread = new Thread(this::runConsumer);
-//        thread.setName("SnapshotProcessor-Thread");
-//        thread.setDaemon(true);
-//        thread.start();
-//        log.info("РџРѕС‚РѕРє SnapshotProcessor СѓСЃРїРµС€РЅРѕ Р·Р°РїСѓС‰РµРЅ");
-//    }
-//
-//    private void runConsumer() {
-//        try {
-//            snapshotConsumer.subscribe(Collections.singletonList(snapshotTopic));
-//            log.info("SnapshotProcessor СѓСЃРїРµС€РЅРѕ РїРѕРґРїРёСЃР°Р»СЃСЏ РЅР° С‚РѕРїРёРє {}", snapshotTopic);
-//
-//            while (!Thread.currentThread().isInterrupted()) {
-//                try {
-//                    ConsumerRecords<String, SensorsSnapshotAvro> records = snapshotConsumer.poll(Duration.ofMillis(500));
-//
-//                    for (var record : records) {
-//                        log.info("РџРѕР»СѓС‡РµРЅ СЃРЅР°РїС€РѕС‚ РёР· Kafka РґР»СЏ С…Р°Р±Р° (key): {}", record.key());
-//                        if (record.value() != null) {
-//                            try {
-//                                snapshotHandler.handle(record.value());
-//                            } catch (Exception e) {
-//                                log.error("РћС€РёР±РєР° РїСЂРё РѕР±СЂР°Р±РѕС‚РєРµ СЃРЅР°РїС€РѕС‚Р° С…РµРЅРґР»РµСЂРѕРј РґР»СЏ С…Р°Р±Р° {}: {}", record.key(), e.getMessage(), e);
-//                            }
-//                        }
-//                    }
-//
-//                    if (!records.isEmpty()) {
-//                        snapshotConsumer.commitSync();
-//                    }
-//                } catch (WakeupException e) {
-//                    log.info("SnapshotProcessor РїРѕР»СѓС‡РёР» СЃРёРіРЅР°Р» РѕСЃС‚Р°РЅРѕРІРєРё (wakeup).");
-//                    break;
-//                } catch (Exception e) {
-//                    log.error("РћС€РёР±РєР° РІРѕ РІСЂРµРјСЏ РёС‚РµСЂР°С†РёРё poll() РІ SnapshotProcessor: {}", e.getMessage(), e);
-//                    try {
-//                        Thread.sleep(1000);
-//                    } catch (InterruptedException ie) {
-//                        Thread.currentThread().interrupt();
-//                    }
-//                }
-//            }
-//        } catch (Exception e) {
-//            log.error("РљСЂРёС‚РёС‡РµСЃРєРёР№ СЃР±РѕР№ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё РїРѕРґРїРёСЃРєРё РІ SnapshotProcessor", e);
-//        } finally {
-//            try {
-//                snapshotConsumer.close();
-//            } catch (Exception e) {
-//                log.error("РћС€РёР±РєР° РїСЂРё Р·Р°РєСЂС‹С‚РёРё snapshotConsumer: {}", e.getMessage());
-//            }
-//            log.info("SnapshotProcessor: consumer СѓСЃРїРµС€РЅРѕ Р·Р°РєСЂС‹С‚.");
-//        }
-//    }
-//}
 
 === FILE: Action.java ===
 package ru.yandex.practicum.model;
