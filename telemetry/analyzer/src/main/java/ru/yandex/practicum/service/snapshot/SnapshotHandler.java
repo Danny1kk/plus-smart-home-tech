@@ -99,10 +99,14 @@ public class SnapshotHandler {
         String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
         String opName = condition.getOperation().name();
 
-        if ("true".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue)) currentValue = "1";
+        if ("true".equalsIgnoreCase(currentValue) || "on".equalsIgnoreCase(currentValue)) currentValue = "1";        if ("false".equalsIgnoreCase(currentValue) || "off".equalsIgnoreCase(currentValue)) currentValue = "0";
         if ("false".equalsIgnoreCase(currentValue) || "off".equalsIgnoreCase(currentValue)) currentValue = "0";
         if ("true".equalsIgnoreCase(targetValue) || "on".equalsIgnoreCase(targetValue)) targetValue = "1";
         if ("false".equalsIgnoreCase(targetValue) || "off".equalsIgnoreCase(targetValue)) targetValue = "0";
+        
+        if (opName.equals("EQUALS") && (!isNumeric(currentValue) || !isNumeric(targetValue))) {
+            return currentValue.equalsIgnoreCase(targetValue);
+        }
 
         try {
             double current = Double.parseDouble(currentValue);
@@ -117,6 +121,16 @@ public class SnapshotHandler {
         } catch (NumberFormatException e) {
             log.warn("Не удалось распарсить числа для датчика {}: текущее={}, эталон={}",
                     typeName, currentValue, targetValue);
+            return false;
+        }
+    }
+
+    private boolean isNumeric(String str) {
+        if (str == null) return false;
+        try {
+            Double.parseDouble(str);
+            return true;
+        } catch (NumberFormatException e) {
             return false;
         }
     }
