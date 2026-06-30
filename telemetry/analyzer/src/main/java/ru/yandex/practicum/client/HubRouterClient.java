@@ -58,12 +58,7 @@ public class HubRouterClient {
         sendAction(request);
     }
 
-    public void sendAction(DeviceActionRequest request) {
-        try {
-            log.info("Отправка команды в Hub Router для хаба {} и устройства {}", request.getHubId(), request.getScenarioName());
-            hubRouterStub.handleDeviceAction(request);
-        } catch (Exception e) {
-            log.error("Ошибка при отправке gRPC запроса в Hub Router: {}", e.getMessage(), e);
-        }
+    private void sendAction(DeviceActionRequest request) {
     }
+
 }
