@@ -11,6 +11,7 @@ import ru.yandex.practicum.grpc.telemetry.hubrouter.HubRouterControllerGrpc;
 import ru.yandex.practicum.model.Action;
 
 import java.time.Instant;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Component
@@ -22,6 +23,9 @@ public class HubRouterClient {
         String target = actionHandlerAddress.replace("static://", "");
         ManagedChannel channel = ManagedChannelBuilder.forTarget(target)
                 .usePlaintext()
+                .keepAliveTime(5, TimeUnit.MINUTES)
+                .keepAliveTimeout(30, TimeUnit.SECONDS)
+                .keepAliveWithoutCalls(true)
                 .build();
         this.hubRouterStub = HubRouterControllerGrpc.newBlockingStub(channel);
     }
