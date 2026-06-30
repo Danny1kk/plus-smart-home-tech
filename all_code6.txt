@@ -2739,7 +2739,7 @@ import ru.yandex.practicum.model.hub.enums.DeviceType;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-30T21:38:31+0300",
+    date = "2026-06-30T22:26:41+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component
@@ -2978,7 +2978,7 @@ import ru.yandex.practicum.model.hub.enums.DeviceType;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-30T21:38:31+0300",
+    date = "2026-06-30T22:26:41+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component
@@ -3220,7 +3220,7 @@ import ru.yandex.practicum.model.sensor.TemperatureSensorEvent;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-30T21:38:31+0300",
+    date = "2026-06-30T22:26:41+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component
@@ -3332,7 +3332,7 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-06-30T21:38:31+0300",
+    date = "2026-06-30T22:26:41+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component
