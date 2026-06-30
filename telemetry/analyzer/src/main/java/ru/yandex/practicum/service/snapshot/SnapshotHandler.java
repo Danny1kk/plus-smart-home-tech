@@ -145,39 +145,37 @@ public class SnapshotHandler {
         return switch (conditionType.toUpperCase()) {
             case "MOTION" -> {
                 if (data instanceof MotionSensorAvro motion) {
-                    yield String.valueOf(motion.getMotion());
+                    yield String.valueOf(motion.get(1));
                 }
                 yield null;
             }
             case "LUMINOSITY" -> {
                 if (data instanceof LightSensorAvro light) {
-                    yield String.valueOf(light.getLuminosity());
+                    yield String.valueOf(light.get(1));
                 }
                 yield null;
             }
             case "SWITCH" -> {
                 if (data instanceof SwitchSensorAvro sw) {
-                    yield String.valueOf(sw.getState());
+                    yield String.valueOf(sw.get(0));
                 }
                 yield null;
             }
             case "TEMPERATURE" -> {
                 if (data instanceof ClimateSensorAvro climate) {
-                    Object temp = climate.get("temperature");
-                    if (temp == null) temp = climate.get("temperature_c");
-                    yield temp != null ? temp.toString() : null;
+                    yield String.valueOf(climate.get(0));
                 }
                 yield null;
             }
             case "CO2LEVEL" -> {
                 if (data instanceof ClimateSensorAvro climate) {
-                    yield String.valueOf(climate.getCo2Level());
+                    yield String.valueOf(climate.get(2));
                 }
                 yield null;
             }
             case "HUMIDITY" -> {
                 if (data instanceof ClimateSensorAvro climate) {
-                    yield String.valueOf(climate.getHumidity());
+                    yield String.valueOf(climate.get(1));
                 }
                 yield null;
             }
