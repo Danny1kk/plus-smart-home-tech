@@ -1,10 +1,12 @@
+version: '3.8'
+
 services:
   kafka:
     image: confluentinc/confluent-local:7.4.3
     hostname: kafka
     container_name: kafka
     ports:
-      - "9092:9092" # for client connections
+      - "9092:9092" # Для подключения Spring Boot из IDEA (localhost:9092)
       - "9101:9101" # JMX
     restart: unless-stopped
     environment:
@@ -16,6 +18,22 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
       KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
       CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.4.3
+    hostname: schema-registry
+    container_name: schema-registry
+    depends_on:
+      - kafka
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
 
   kafka-init-topics:
     image: confluentinc/confluent-local:7.4.3
@@ -32,4 +50,18 @@ services:
                 kafka-topics --create --topic telemetry.hubs.v1 \
                              --partitions 1 --replication-factor 1 --if-not-exists \
                              --bootstrap-server kafka:29092'"
-    init: true
+
+  postgres:
+      image: postgres:15
+      container_name: postgres-db
+      ports:
+        - "5433:5432"
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: smarthome
+      healthcheck:
+        test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+        interval: 5s
+        timeout: 5s
+        retries: 5
