@@ -20,31 +20,59 @@ public class WarehouseController {
         return warehouseService.reserveItems(items);
     }
 
-    @PostMapping("/product")
+    @PostMapping(path = {"/product", "/goods"})
     public void createProductDto(@RequestBody ProductDto request) {
         if (request.getId() != null) {
             warehouseService.addStock(request.getId(), 0);
         }
     }
 
-    @PostMapping("/storage")
-    public void addStockPost(@RequestParam Long productId, @RequestParam Integer quantity) {
-        warehouseService.addStock(productId, quantity);
+    @PostMapping(path = {"/storage", "/goods/receipt"})
+    public void addStockPost(@RequestParam(required = false) Long productId,
+                             @RequestParam(required = false) Integer quantity,
+                             @RequestBody(required = false) ProductDto requestBody) {
+        if (productId != null && quantity != null) {
+            warehouseService.addStock(productId, quantity);
+        } else if (requestBody != null && requestBody.getId() != null) {
+            warehouseService.addStock(requestBody.getId(), 1);
+        }
     }
 
-    @PutMapping("/storage")
-    public void addStockPut(@RequestParam Long productId, @RequestParam Integer quantity) {
-        warehouseService.addStock(productId, quantity);
+    @PutMapping(path = {"/storage", "/goods"})
+    public void addStockPut(@RequestParam(required = false) Long productId,
+                            @RequestParam(required = false) Integer quantity,
+                            @RequestBody(required = false) ProductDto requestBody) {
+        if (productId != null && quantity != null) {
+            warehouseService.addStock(productId, quantity);
+        } else if (requestBody != null && requestBody.getId() != null) {
+            warehouseService.addStock(requestBody.getId(), 1);
+        }
     }
 
     @PostMapping("/goods/receipt")
-    public void addStockReceipt(@RequestParam Long productId, @RequestParam Integer quantity) {
-        warehouseService.addStock(productId, quantity);
+    public void addStockReceipt(@RequestParam(required = false) Long productId,
+                                @RequestParam(required = false) Integer quantity,
+                                @RequestBody(required = false) Map<String, Object> body) {
+        if (productId != null && quantity != null) {
+            warehouseService.addStock(productId, quantity);
+        } else if (body != null) {
+            Long id = Long.valueOf(body.get("productId").toString());
+            Integer qty = Integer.valueOf(body.get("quantity").toString());
+            warehouseService.addStock(id, qty);
+        }
     }
 
     @PutMapping("/goods")
-    public void addStockGoodsPut(@RequestParam Long productId, @RequestParam Integer quantity) {
-        warehouseService.addStock(productId, quantity);
+    public void addStockGoodsPut(@RequestParam(required = false) Long productId,
+                                 @RequestParam(required = false) Integer quantity,
+                                 @RequestBody(required = false) Map<String, Object> body) {
+        if (productId != null && quantity != null) {
+            warehouseService.addStock(productId, quantity);
+        } else if (body != null) {
+            Long id = Long.valueOf(body.get("productId").toString());
+            Integer qty = Integer.valueOf(body.get("quantity").toString());
+            warehouseService.addStock(id, qty);
+        }
     }
 
     @GetMapping("/address")

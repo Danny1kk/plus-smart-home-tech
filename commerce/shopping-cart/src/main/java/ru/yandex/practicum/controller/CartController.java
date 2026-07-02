@@ -28,13 +28,17 @@ public class CartController {
         cartService.clearCart(userId);
     }
 
-    @DeleteMapping("/{userId}/deactivate")
-    public void deactivateCartDelete(@PathVariable String userId) {
-        cartService.clearCart(userId);
+    @DeleteMapping(path = {"", "/deactivate", "/{userId}/deactivate", "/{userId}"})
+    public void deactivateCartDelete(@PathVariable(required = false) String userId) {
+        if (userId != null) {
+            cartService.clearCart(userId);
+        }
     }
 
-    @PostMapping("/{userId}/deactivate")
-    public void deactivateCartPost(@PathVariable String userId) {
-        cartService.clearCart(userId);
+    @PostMapping(path = {"", "/deactivate", "/{userId}/deactivate"})
+    public void deactivateCartPost(@PathVariable(required = false) String userId) {
+        if (userId != null) {
+            cartService.clearCart(userId);
+        }
     }
 }
