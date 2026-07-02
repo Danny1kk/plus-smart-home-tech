@@ -22,16 +22,30 @@ public class WarehouseController {
 
     @PostMapping("/product")
     public void createProductDto(@RequestBody ProductDto request) {
-        warehouseService.addStock(request.getId(), 0);
+        if (request.getId() != null) {
+            warehouseService.addStock(request.getId(), 0);
+        }
+    }
+
+    @PostMapping("/storage")
+    public void addStockPost(@RequestParam Long productId, @RequestParam Integer quantity) {
+        warehouseService.addStock(productId, quantity);
     }
 
     @PutMapping("/storage")
-    public void addStock(@RequestParam Long productId, @RequestParam Integer quantity) {
+    public void addStockPut(@RequestParam Long productId, @RequestParam Integer quantity) {
         warehouseService.addStock(productId, quantity);
     }
 
     @GetMapping("/address")
     public AddressDto getWarehouseAddress() {
-        return new AddressDto("Russia", "Moscow", "Lenina", "10", "101000");
+        AddressDto address = new AddressDto();
+        address.setCountry("Russia");
+        address.setCity("Moscow");
+        address.setStreet("Lenina");
+        address.setHouse("10");
+        address.setStructure("1");
+        address.setFlat("42");
+        return address;
     }
 }

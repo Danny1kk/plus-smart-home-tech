@@ -9,7 +9,5 @@ public class AddressDto {
     private String street;
     private String house;
     private String structure;
-
-    public AddressDto(String russia, String moscow, String lenina, String number, String number1) {
-    }
+    private String flat;
 }
