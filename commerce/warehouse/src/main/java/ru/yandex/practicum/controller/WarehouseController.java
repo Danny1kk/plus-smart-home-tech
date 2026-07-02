@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.dto.AddressDto;
 import ru.yandex.practicum.dto.ProductDto;
+import ru.yandex.practicum.dto.StockReceiptDto;
 import ru.yandex.practicum.service.WarehouseService;
 
 import java.util.Map;
@@ -55,29 +56,13 @@ public class WarehouseController {
     }
 
     @PostMapping("/goods/receipt")
-    public void addStockReceipt(@RequestParam(required = false) Long productId,
-                                @RequestParam(required = false) Integer quantity,
-                                @RequestBody(required = false) Map<String, Object> body) {
-        if (productId != null && quantity != null) {
-            warehouseService.addStock(productId, quantity);
-        } else if (body != null) {
-            Long id = Long.valueOf(body.get("productId").toString());
-            Integer qty = Integer.valueOf(body.get("quantity").toString());
-            warehouseService.addStock(id, qty);
-        }
+    public void addStockReceipt(@RequestBody StockReceiptDto dto) {
+        warehouseService.addStock(dto.getProductId(), dto.getQuantity());
     }
 
     @PutMapping("/goods")
-    public void addStockGoodsPut(@RequestParam(required = false) Long productId,
-                                 @RequestParam(required = false) Integer quantity,
-                                 @RequestBody(required = false) Map<String, Object> body) {
-        if (productId != null && quantity != null) {
-            warehouseService.addStock(productId, quantity);
-        } else if (body != null) {
-            Long id = Long.valueOf(body.get("productId").toString());
-            Integer qty = Integer.valueOf(body.get("quantity").toString());
-            warehouseService.addStock(id, qty);
-        }
+    public void addStockGoodsPut(@RequestBody StockReceiptDto dto) {
+        warehouseService.addStock(dto.getProductId(), dto.getQuantity());
     }
 
     @GetMapping("/address")
