@@ -18,8 +18,19 @@ public class CartController {
         return cartService.getCart(userId);
     }
 
+    @GetMapping
+    public CartDto getCartByHeader(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId) {
+        return cartService.getCart(userId);
+    }
+
     @PostMapping("/{userId}/add")
     public CartDto addItem(@PathVariable String userId, @RequestBody AddToCartRequest request) {
+        return cartService.addItem(userId, request.getProductId(), request.getQuantity());
+    }
+
+    @PostMapping("/add")
+    public CartDto addItemByHeader(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
+                                   @RequestBody AddToCartRequest request) {
         return cartService.addItem(userId, request.getProductId(), request.getQuantity());
     }
 
@@ -29,21 +40,43 @@ public class CartController {
         return cartService.getCart(userId);
     }
 
-    @DeleteMapping(path = {"", "/deactivate", "/{userId}/deactivate"})
-    public CartDto deactivateCartDelete(@PathVariable(required = false) String userId) {
-        if (userId != null) {
-            cartService.clearCart(userId);
-            return cartService.getCart(userId);
+    @DeleteMapping
+    public CartDto clearCartByHeader(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId) {
+        cartService.clearCart(userId);
+        return cartService.getCart(userId);
+    }
+
+    @DeleteMapping("/remove")
+    public CartDto removeProduct(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
+                                 @RequestBody AddToCartRequest request) {
+        return cartService.getCart(userId);
+    }
+
+    @PostMapping("/change-quantity")
+    public CartDto changeQuantity(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
+                                  @RequestBody AddToCartRequest request) {
+        return cartService.addItem(userId, request.getProductId(), request.getQuantity());
+    }
+
+    @DeleteMapping(path = {"/deactivate", "/{userId}/deactivate"})
+    public CartDto deactivateCartDelete(@PathVariable(required = false) String userId,
+                                        @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
+        String resolvedUid = userId != null ? userId : headerUserId;
+        if (resolvedUid != null) {
+            cartService.clearCart(resolvedUid);
+            return cartService.getCart(resolvedUid);
         }
         return new CartDto();
     }
 
-        @PostMapping(path = {"", "/deactivate", "/{userId}/deactivate"})
-        public CartDto deactivateCartPost(@PathVariable(required = false) String userId) {
-            if (userId != null) {
-                cartService.clearCart(userId);
-                return cartService.getCart(userId);
-            }
-            return new CartDto();
+    @PostMapping(path = {"/deactivate", "/{userId}/deactivate"})
+    public CartDto deactivateCartPost(@PathVariable(required = false) String userId,
+                                      @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
+        String resolvedUid = userId != null ? userId : headerUserId;
+        if (resolvedUid != null) {
+            cartService.clearCart(resolvedUid);
+            return cartService.getCart(resolvedUid);
+        }
+        return new CartDto();
     }
 }
