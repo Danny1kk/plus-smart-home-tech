@@ -25,4 +25,15 @@ public class ProductService {
         products.put(id, productDto);
         return productDto;
     }
+
+    public void checkQuantityState(Long productId, String quantityState) {
+        ProductDto product = products.get(productId);
+        if (product == null) {
+            throw new IllegalArgumentException("Товар с ID " + productId + " не найден");
+        }
+
+        product.setQuantityState(quantityState);
+
+        products.put(productId, product);
+    }
 }
