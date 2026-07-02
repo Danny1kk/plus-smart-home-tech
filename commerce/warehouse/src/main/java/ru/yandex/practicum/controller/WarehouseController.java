@@ -37,6 +37,16 @@ public class WarehouseController {
         warehouseService.addStock(productId, quantity);
     }
 
+    @PostMapping("/goods/receipt")
+    public void addStockReceipt(@RequestParam Long productId, @RequestParam Integer quantity) {
+        warehouseService.addStock(productId, quantity);
+    }
+
+    @PutMapping("/goods")
+    public void addStockGoodsPut(@RequestParam Long productId, @RequestParam Integer quantity) {
+        warehouseService.addStock(productId, quantity);
+    }
+
     @GetMapping("/address")
     public AddressDto getWarehouseAddress() {
         AddressDto address = new AddressDto();

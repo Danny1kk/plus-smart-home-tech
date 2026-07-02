@@ -7,7 +7,7 @@ import ru.yandex.practicum.dto.CartDto;
 import ru.yandex.practicum.service.CartService;
 
 @RestController
-@RequestMapping("/api/v1/cart")
+@RequestMapping(path = {"/api/v1/cart", "/api/v1/shopping-cart"})
 @RequiredArgsConstructor
 public class CartController {
 
@@ -25,6 +25,16 @@ public class CartController {
 
     @DeleteMapping("/{userId}")
     public void clearCart(@PathVariable String userId) {
+        cartService.clearCart(userId);
+    }
+
+    @DeleteMapping("/{userId}/deactivate")
+    public void deactivateCartDelete(@PathVariable String userId) {
+        cartService.clearCart(userId);
+    }
+
+    @PostMapping("/{userId}/deactivate")
+    public void deactivateCartPost(@PathVariable String userId) {
         cartService.clearCart(userId);
     }
 }
