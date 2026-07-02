@@ -9,7 +9,12 @@ import ru.yandex.practicum.service.WarehouseService;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/warehouse")
+@RequestMapping(path = {
+        "/api/v1/warehouse",
+        "/api/v1/goods",
+        "/goods",
+        "/api/v1/storage"
+})
 @RequiredArgsConstructor
 public class WarehouseController {
 

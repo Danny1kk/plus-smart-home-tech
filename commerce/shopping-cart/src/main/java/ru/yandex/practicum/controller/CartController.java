@@ -24,21 +24,26 @@ public class CartController {
     }
 
     @DeleteMapping("/{userId}")
-    public void clearCart(@PathVariable String userId) {
+    public CartDto clearCart(@PathVariable String userId) {
         cartService.clearCart(userId);
+        return cartService.getCart(userId);
     }
 
-    @DeleteMapping(path = {"", "/deactivate", "/{userId}/deactivate", "/{userId}"})
-    public void deactivateCartDelete(@PathVariable(required = false) String userId) {
+    @DeleteMapping(path = {"", "/deactivate", "/{userId}/deactivate"})
+    public CartDto deactivateCartDelete(@PathVariable(required = false) String userId) {
         if (userId != null) {
             cartService.clearCart(userId);
+            return cartService.getCart(userId);
         }
+        return new CartDto();
     }
 
-    @PostMapping(path = {"", "/deactivate", "/{userId}/deactivate"})
-    public void deactivateCartPost(@PathVariable(required = false) String userId) {
-        if (userId != null) {
-            cartService.clearCart(userId);
-        }
+        @PostMapping(path = {"", "/deactivate", "/{userId}/deactivate"})
+        public CartDto deactivateCartPost(@PathVariable(required = false) String userId) {
+            if (userId != null) {
+                cartService.clearCart(userId);
+                return cartService.getCart(userId);
+            }
+            return new CartDto();
     }
 }
