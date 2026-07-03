@@ -6,6 +6,7 @@ import ru.yandex.practicum.dto.AddToCartRequest;
 import ru.yandex.practicum.dto.CartDto;
 import ru.yandex.practicum.service.CartService;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -65,10 +66,10 @@ public class CartController {
     @PostMapping("/remove")
     public CartDto removeProduct(@RequestParam(value = "username", required = false) String queryUsername,
                                  @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId,
-                                 @RequestBody(required = false) Map<String, Integer> items) {
+                                 @RequestBody(required = false) List<String> productIds) {
         String resolvedUid = resolveUserId(queryUsername, null, headerUserId);
-        if (items != null) {
-            for (String productId : items.keySet()) {
+        if (productIds != null) {
+            for (String productId : productIds) {
                 cartService.removeItem(resolvedUid, productId);
             }
         }
