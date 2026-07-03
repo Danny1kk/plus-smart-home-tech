@@ -49,13 +49,13 @@ public class CartController {
     @DeleteMapping("/remove")
     public CartDto removeProduct(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
                                  @RequestBody AddToCartRequest request) {
-        return cartService.getCart(userId);
+        return cartService.removeItem(userId, request.getProductId());
     }
 
     @PostMapping("/change-quantity")
     public CartDto changeQuantity(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
                                   @RequestBody AddToCartRequest request) {
-        return cartService.addItem(userId, request.getProductId(), request.getQuantity());
+        return cartService.changeQuantity(userId, request.getProductId(), request.getQuantity());
     }
 
     @DeleteMapping(path = {"/deactivate", "/{userId}/deactivate"})

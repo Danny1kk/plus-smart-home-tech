@@ -40,4 +40,27 @@ public class CartService {
     public void clearCart(String userId) {
         carts.remove(userId);
     }
+
+    public CartDto removeItem(String userId, Long productId) {
+        Map<Long, Integer> userItems = carts.get(userId);
+        if (userItems != null) { userItems.remove(productId); }
+        return getCart(userId);
+    }
+
+    public CartDto changeQuantity(String userId, Long productId, Integer quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Количество товара должно быть больше 0");
+        }
+
+        Map<Long, Integer> itemsToReserve = Map.of(productId, quantity);
+        Boolean isReserved = warehouseClient.checkAndReserveItems(itemsToReserve);
+
+        if (Boolean.TRUE.equals(isReserved)) {
+            Map<Long, Integer> userItems = carts.computeIfAbsent(userId, k -> new ConcurrentHashMap<>());
+            userItems.put(productId, quantity);
+            return new CartDto(userId, userItems);
+        } else {
+            throw new IllegalArgumentException("Недостаточно товара на складе для изменения количества.");
+        }
+    }
 }

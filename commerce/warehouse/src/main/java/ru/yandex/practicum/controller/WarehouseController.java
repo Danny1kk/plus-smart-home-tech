@@ -26,11 +26,41 @@ public class WarehouseController {
         return warehouseService.reserveItems(items);
     }
 
-    @PostMapping(path = {"/product", "/goods"})
-    public void createProductDto(@RequestBody ProductDto request) {
+    @PostMapping(path = {"", "/product", "/goods"})
+    public ProductDto createProductDto(@RequestBody ProductDto request) {
         if (request.getId() != null) {
             warehouseService.addStock(request.getId(), 0);
         }
+        return request;
+    }
+
+    @PutMapping(path = {"", "/storage", "/goods"})
+    public ProductDto addStockPut(@RequestParam(required = false) Long productId,
+                                  @RequestParam(required = false) Integer quantity,
+                                  @RequestBody(required = false) ProductDto requestBody) {
+        if (productId != null && quantity != null) {
+            warehouseService.addStock(productId, quantity);
+        } else if (requestBody != null && requestBody.getId() != null) {
+            int qty = 1;
+
+            if (requestBody.getQuantity() != null) {
+                try {
+                    qty = Integer.parseInt(String.valueOf(requestBody.getQuantity()));
+                } catch (NumberFormatException e) {
+                    qty = 1;
+                }
+            }
+
+            warehouseService.addStock(requestBody.getId(), qty);
+            return requestBody;
+        }
+
+        ProductDto response = (requestBody != null) ? requestBody : new ProductDto();
+        if (productId != null) response.setId(productId);
+
+        if (quantity != null) response.setQuantity(quantity);
+
+        return response;
     }
 
     @PostMapping(path = {"/storage", "/goods/receipt"})
@@ -44,24 +74,8 @@ public class WarehouseController {
         }
     }
 
-    @PutMapping(path = {"/storage", "/goods"})
-    public void addStockPut(@RequestParam(required = false) Long productId,
-                            @RequestParam(required = false) Integer quantity,
-                            @RequestBody(required = false) ProductDto requestBody) {
-        if (productId != null && quantity != null) {
-            warehouseService.addStock(productId, quantity);
-        } else if (requestBody != null && requestBody.getId() != null) {
-            warehouseService.addStock(requestBody.getId(), 1);
-        }
-    }
-
-    @PostMapping("/goods/receipt")
+    @PostMapping("/goods/receipt/dto")
     public void addStockReceipt(@RequestBody StockReceiptDto dto) {
-        warehouseService.addStock(dto.getProductId(), dto.getQuantity());
-    }
-
-    @PutMapping("/goods")
-    public void addStockGoodsPut(@RequestBody StockReceiptDto dto) {
         warehouseService.addStock(dto.getProductId(), dto.getQuantity());
     }
 
