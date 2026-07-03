@@ -8,19 +8,24 @@ import ru.yandex.practicum.service.ProductService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/shopping-store")
+@RequestMapping(path = {"/api/v1/shopping-store", ""})
 @RequiredArgsConstructor
 public class ProductController {
 
     private final ProductService productService;
 
-    @GetMapping("/products")
+    @GetMapping(path = {"", "/products"})
     public List<ProductDto> getAllProducts() {
         return productService.getAllProducts();
     }
 
-    @PostMapping("/product")
-    public ProductDto addProduct(@RequestBody ProductDto productDto) {
+    @PostMapping(path = {"", "/product"})
+    public ProductDto addProductPost(@RequestBody ProductDto productDto) {
+        return productService.addProduct(productDto);
+    }
+
+    @PutMapping(path = {"", "/product"})
+    public ProductDto addProductPut(@RequestBody ProductDto productDto) {
         return productService.addProduct(productDto);
     }
 
