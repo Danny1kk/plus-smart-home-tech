@@ -81,8 +81,14 @@ public class CartController {
     }
 
     @PutMapping
-    public CartDto deactivateCartPut(@RequestParam("username") String userId) {
-        cartService.clearCart(userId);
-        return cartService.getCart(userId);
+    public CartDto deactivateCartPut(@RequestParam(value = "username", required = false) String userId,
+                                     @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
+
+        String resolvedUid = userId != null ? userId : headerUserId;
+        if (resolvedUid != null) {
+            cartService.clearCart(resolvedUid);
+            return cartService.getCart(resolvedUid);
+        }
+        return new CartDto();
     }
 }

@@ -35,7 +35,15 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ProductDto getProductById(@PathVariable Long id) {
-        return productService.getProductById(id);
+    public ProductDto getProductById(@PathVariable String id) {
+        if (id == null || "null".equals(id) || "undefined".equals(id)) {
+            return new ProductDto();
+        }
+        try {
+            Long numericId = Long.parseLong(id);
+            return productService.getProductById(numericId);
+        } catch (NumberFormatException e) {
+            return new ProductDto();
+        }
     }
 }
