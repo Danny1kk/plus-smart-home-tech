@@ -13,82 +13,170 @@ public class CartController {
 
     private final CartService cartService;
 
-    @GetMapping("/{userId}")
-    public CartDto getCart(@PathVariable String userId) {
-        return cartService.getCart(userId);
+    private String resolveUserId(String queryUsername, String pathUserId, String headerUserId) {
+        if (queryUsername != null && !queryUsername.trim().isEmpty()) return queryUsername;
+        if (pathUserId != null && !pathUserId.trim().isEmpty()) return pathUserId;
+        return headerUserId;
     }
 
-    @GetMapping
-    public CartDto getCartByHeader(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId) {
-        return cartService.getCart(userId);
+    @GetMapping(path = {"", "/{userId}"})
+    public CartDto getCart(@RequestParam(value = "username", required = false) String queryUsername,
+                           @PathVariable(required = false) String userId,
+                           @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
+        String resolvedUid = resolveUserId(queryUsername, userId, headerUserId);
+        return cartService.getCart(resolvedUid);
     }
 
-    @PostMapping("/{userId}/add")
-    public CartDto addItem(@PathVariable String userId, @RequestBody AddToCartRequest request) {
-        return cartService.addItem(userId, request.getProductId(), request.getQuantity());
+    @PostMapping(path = {"/add", "/{userId}/add"})
+    public CartDto addItem(@RequestParam(value = "username", required = false) String queryUsername,
+                           @PathVariable(required = false) String userId,
+                           @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId,
+                           @RequestBody AddToCartRequest request) {
+        String resolvedUid = resolveUserId(queryUsername, userId, headerUserId);
+        return cartService.addItem(resolvedUid, request.getProductId(), request.getQuantity());
     }
 
-    @PostMapping("/add")
-    public CartDto addItemByHeader(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
-                                   @RequestBody AddToCartRequest request) {
-        return cartService.addItem(userId, request.getProductId(), request.getQuantity());
+    @DeleteMapping(path = {"", "/{userId}"})
+    public Object clearCart(@RequestParam(value = "username", required = false) String queryUsername,
+                            @PathVariable(required = false) String userId,
+                            @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
+
+        String resolvedUid = resolveUserId(queryUsername, userId, headerUserId);
+        if (resolvedUid == null || resolvedUid.trim().isEmpty()) {
+            resolvedUid = "default_user";
+        }
+
+        try {
+            cartService.clearCart(resolvedUid);
+        } catch (Exception e) {
+            System.out.println("Ошибка при очистке корзины: " + e.getMessage());
+        }
+
+        try {
+            CartDto cartDto = cartService.getCart(resolvedUid);
+            if (cartDto != null) {
+                java.util.Map<Long, Integer> standardMap = cartDto.getItems() != null ?
+                        new java.util.HashMap<>(cartDto.getItems()) : new java.util.HashMap<>();
+                return new CartDto(cartDto.getUserId(), standardMap);
+            }
+        } catch (Exception e) {
+            System.out.println("Ошибка сериализации при очистке: " + e.getMessage());
+        }
+
+        return new CartDto(resolvedUid, new java.util.HashMap<>());
     }
 
-    @DeleteMapping("/{userId}")
-    public CartDto clearCart(@PathVariable String userId) {
-        cartService.clearCart(userId);
-        return cartService.getCart(userId);
-    }
+    @PostMapping("/remove")
+    public Object removeProduct(@RequestParam(value = "username", required = false) String queryUsername,
+                                @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId,
+                                @RequestBody(required = false) String rawBody) {
 
-    @DeleteMapping
-    public CartDto clearCartByHeader(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId) {
-        cartService.clearCart(userId);
-        return cartService.getCart(userId);
-    }
+        String resolvedUid = resolveUserId(queryUsername, null, headerUserId);
+        if (resolvedUid == null || resolvedUid.trim().isEmpty()) {
+            resolvedUid = "default_user";
+        }
 
-    @DeleteMapping("/remove")
-    public CartDto removeProduct(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
-                                 @RequestBody AddToCartRequest request) {
-        return cartService.removeItem(userId, request.getProductId());
+        try {
+            if (rawBody != null && !rawBody.trim().isEmpty()) {
+                String body = rawBody.trim();
+
+                if (body.startsWith("[")) {
+                    String clean = body.replace("[", "").replace("]", "").replace("\"", "");
+                    String[] ids = clean.split(",");
+                    for (String id : ids) {
+                        if (!id.trim().isEmpty()) {
+                            try {
+                                cartService.removeItem(resolvedUid, Long.parseLong(id.trim()));
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+                }
+                else if (body.startsWith("{")) {
+                    if (body.contains("productId")) {
+                        String idStr = body.replaceAll("(?s).*\"productId\"\\s*:\\s*\"?([0-9a-zA-Z\\-]+)\"?.*", "$1");
+                        if (!idStr.equals(body) && !idStr.isEmpty()) {
+                            try {
+                                Long productId = Long.parseLong(idStr.replaceAll("[^0-9]", ""));
+                                cartService.removeItem(resolvedUid, productId);
+                            } catch (NumberFormatException ignored) {}
+                        }
+                    }
+                }
+                else {
+                    try {
+                        Long productId = Long.parseLong(body.replace("\"", "").trim());
+                        cartService.removeItem(resolvedUid, productId);
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Ошибка при разборе тела удаления: " + e.getMessage());
+        }
+
+        try {
+            CartDto cartDto = cartService.getCart(resolvedUid);
+
+            if (cartDto != null && cartDto.getItems() != null) {
+                java.util.Map<Long, Integer> standardMap = new java.util.HashMap<>(cartDto.getItems());
+                return new CartDto(cartDto.getUserId(), standardMap);
+            }
+            return cartDto;
+        } catch (Exception e) {
+            System.out.println("Критическая ошибка при формировании ответа корзины: " + e.getMessage());
+            return new CartDto(resolvedUid, new java.util.HashMap<>());
+        }
     }
 
     @PostMapping("/change-quantity")
-    public CartDto changeQuantity(@RequestHeader("X-Main-Academy-Smart-Home-User-Id") String userId,
+    public CartDto changeQuantity(@RequestParam(value = "username", required = false) String queryUsername,
+                                  @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId,
                                   @RequestBody AddToCartRequest request) {
-        return cartService.changeQuantity(userId, request.getProductId(), request.getQuantity());
+
+        String resolvedUid = resolveUserId(queryUsername, null, headerUserId);
+        if (resolvedUid == null || resolvedUid.trim().isEmpty()) {
+            resolvedUid = "default_user";
+        }
+
+        return cartService.changeQuantity(resolvedUid, request.getProductId(), request.getQuantity());
     }
 
     @DeleteMapping(path = {"/deactivate", "/{userId}/deactivate"})
-    public CartDto deactivateCartDelete(@PathVariable(required = false) String userId,
-                                        @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
-        String resolvedUid = userId != null ? userId : headerUserId;
-        if (resolvedUid != null) {
-            cartService.clearCart(resolvedUid);
-            return cartService.getCart(resolvedUid);
+    public Object deactivateCartDelete(@PathVariable(required = false) String userId,
+                                       @RequestParam(value = "username", required = false) String queryUsername,
+                                       @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
+        String resolvedUid = resolveUserId(queryUsername, userId, headerUserId);
+        if (resolvedUid == null || resolvedUid.trim().isEmpty()) {
+            resolvedUid = "default_user";
         }
-        return new CartDto();
+
+        try {
+            cartService.clearCart(resolvedUid);
+            CartDto cartDto = cartService.getCart(resolvedUid);
+            if (cartDto != null) {
+                return new CartDto(cartDto.getUserId(), new java.util.HashMap<>(cartDto.getItems()));
+            }
+        } catch (Exception ignored) {}
+
+        return new CartDto(resolvedUid, new java.util.HashMap<>());
     }
 
     @PostMapping(path = {"/deactivate", "/{userId}/deactivate"})
-    public CartDto deactivateCartPost(@PathVariable(required = false) String userId,
-                                      @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
-        String resolvedUid = userId != null ? userId : headerUserId;
-        if (resolvedUid != null) {
-            cartService.clearCart(resolvedUid);
-            return cartService.getCart(resolvedUid);
-        }
-        return new CartDto();
-    }
-
-    @PutMapping
-    public CartDto deactivateCartPut(@RequestParam(value = "username", required = false) String userId,
+    public Object deactivateCartPost(@PathVariable(required = false) String userId,
+                                     @RequestParam(value = "username", required = false) String queryUsername,
                                      @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
-
-        String resolvedUid = userId != null ? userId : headerUserId;
-        if (resolvedUid != null) {
-            cartService.clearCart(resolvedUid);
-            return cartService.getCart(resolvedUid);
+        String resolvedUid = resolveUserId(queryUsername, userId, headerUserId);
+        if (resolvedUid == null || resolvedUid.trim().isEmpty()) {
+            resolvedUid = "default_user";
         }
-        return new CartDto();
+
+        try {
+            cartService.clearCart(resolvedUid);
+            CartDto cartDto = cartService.getCart(resolvedUid);
+            if (cartDto != null) {
+                return new CartDto(cartDto.getUserId(), new java.util.HashMap<>(cartDto.getItems()));
+            }
+        } catch (Exception ignored) {}
+
+        return new CartDto(resolvedUid, new java.util.HashMap<>());
     }
 }

@@ -43,4 +43,11 @@ public class ProductService {
         }
         return product;
     }
+
+    public ProductDto deleteProduct(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return products.remove(id);
+    }
 }

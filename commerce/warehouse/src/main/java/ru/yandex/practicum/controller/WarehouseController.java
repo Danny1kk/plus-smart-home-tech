@@ -1,6 +1,8 @@
 package ru.yandex.practicum.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.dto.AddressDto;
 import ru.yandex.practicum.dto.ProductDto;
@@ -22,8 +24,22 @@ public class WarehouseController {
     private final WarehouseService warehouseService;
 
     @PostMapping("/reserve")
-    public Boolean checkAndReserveItems(@RequestBody Map<Long, Integer> items) {
-        return warehouseService.reserveItems(items);
+    public ResponseEntity<?> checkAndReserveItems(@RequestBody Map<Long, Integer> itemsToReserve) {
+        if (itemsToReserve == null || itemsToReserve.isEmpty()) {
+            return ResponseEntity.badRequest().body(false);
+        }
+
+        try {
+            boolean success = warehouseService.reserveItems(itemsToReserve);
+
+            if (success) {
+                return ResponseEntity.ok(true);
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(false);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(false);
+        }
     }
 
     @PostMapping(path = {"", "/product", "/goods"})
@@ -64,20 +80,30 @@ public class WarehouseController {
     }
 
     @PostMapping(path = {"/add", "/storage", "/goods/receipt"})
-    public void addStockPost(@RequestParam(required = false) Long productId,
-                             @RequestParam(required = false) Integer quantity,
-                             @RequestBody(required = false) ProductDto requestBody) {
+    public ProductDto addStockPost(@RequestParam(required = false) Long productId,
+                                   @RequestParam(required = false) Integer quantity,
+                                   @RequestBody(required = false) ProductDto requestBody) {
+        ProductDto response = new ProductDto();
+
         if (productId != null && quantity != null) {
             warehouseService.addStock(productId, quantity);
+            response.setId(productId);
+            response.setQuantity(quantity);
         } else if (requestBody != null && requestBody.getId() != null) {
             int qty = (requestBody.getQuantity() != null) ? requestBody.getQuantity() : 1;
             warehouseService.addStock(requestBody.getId(), qty);
+            return requestBody;
         }
+
+        return response;
     }
 
     @PostMapping("/goods/receipt/dto")
-    public void addStockReceipt(@RequestBody StockReceiptDto dto) {
-        warehouseService.addStock(dto.getProductId(), dto.getQuantity());
+    public StockReceiptDto addStockReceipt(@RequestBody StockReceiptDto dto) {
+        if (dto != null) {
+            warehouseService.addStock(dto.getProductId(), dto.getQuantity());
+        }
+        return dto;
     }
 
     @GetMapping("/address")
