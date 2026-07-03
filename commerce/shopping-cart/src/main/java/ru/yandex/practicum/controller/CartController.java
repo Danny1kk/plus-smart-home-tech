@@ -79,4 +79,10 @@ public class CartController {
         }
         return new CartDto();
     }
+
+    @PutMapping
+    public CartDto deactivateCartPut(@RequestParam("username") String userId) {
+        cartService.clearCart(userId);
+        return cartService.getCart(userId);
+    }
 }

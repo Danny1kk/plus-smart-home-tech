@@ -63,14 +63,15 @@ public class WarehouseController {
         return response;
     }
 
-    @PostMapping(path = {"/storage", "/goods/receipt"})
+    @PostMapping(path = {"/add", "/storage", "/goods/receipt"})
     public void addStockPost(@RequestParam(required = false) Long productId,
                              @RequestParam(required = false) Integer quantity,
                              @RequestBody(required = false) ProductDto requestBody) {
         if (productId != null && quantity != null) {
             warehouseService.addStock(productId, quantity);
         } else if (requestBody != null && requestBody.getId() != null) {
-            warehouseService.addStock(requestBody.getId(), 1);
+            int qty = (requestBody.getQuantity() != null) ? requestBody.getQuantity() : 1;
+            warehouseService.addStock(requestBody.getId(), qty);
         }
     }
 

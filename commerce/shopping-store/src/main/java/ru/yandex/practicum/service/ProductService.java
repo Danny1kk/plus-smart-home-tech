@@ -33,7 +33,14 @@ public class ProductService {
         }
 
         product.setQuantityState(quantityState);
-
         products.put(productId, product);
+    }
+
+    public ProductDto getProductById(Long id) {
+        ProductDto product = products.get(id);
+        if (product == null) {
+            throw new IllegalArgumentException("Товар с ID " + id + " не найден");
+        }
+        return product;
     }
 }

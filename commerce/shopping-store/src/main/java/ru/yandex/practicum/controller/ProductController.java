@@ -33,4 +33,9 @@ public class ProductController {
     public void checkQuantityState(@RequestParam Long productId, @RequestParam String quantityState) {
         productService.checkQuantityState(productId, quantityState);
     }
+
+    @GetMapping("/{id}")
+    public ProductDto getProductById(@PathVariable Long id) {
+        return productService.getProductById(id);
+    }
 }
