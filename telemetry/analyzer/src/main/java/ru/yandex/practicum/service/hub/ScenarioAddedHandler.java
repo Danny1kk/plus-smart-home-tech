@@ -59,6 +59,8 @@ public class ScenarioAddedHandler implements HubEventHandler {
     }
 
     private void processConditions(Scenario scenario, ScenarioAddedEventAvro avro, String hubId) {
+        if (avro.getConditions() == null) return;
+
         avro.getConditions().forEach(cDto -> {
             Sensor sensor = sensorRepository.findById(cDto.getSensorId())
                     .orElseGet(() -> sensorRepository.save(Sensor.builder()
@@ -67,17 +69,12 @@ public class ScenarioAddedHandler implements HubEventHandler {
                             .sensorType(cDto.getType().name())
                             .build()));
 
-            Condition condition = conditionRepository.save(Condition.builder()
-                    .type(cDto.getType())
-                    .operation(cDto.getOperation())
-                    .value(asInteger(cDto.getValue()))
-                    .build());
-
             ScenarioCondition scenarioCondition = ScenarioCondition.builder()
                     .scenario(scenario)
-                    .sensor(sensor)
-                    .condition(condition)
-                    .id(new ScenarioConditionId(scenario.getId(), sensor.getId()))
+                    .sensorId(cDto.getSensorId())
+                    .type(cDto.getType().name())
+                    .operation(cDto.getOperation().name())
+                    .value(String.valueOf(cDto.getValue()))
                     .build();
 
             scenario.addCondition(scenarioCondition);

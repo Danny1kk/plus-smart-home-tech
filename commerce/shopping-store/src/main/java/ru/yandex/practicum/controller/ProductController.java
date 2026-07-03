@@ -1,12 +1,16 @@
 package ru.yandex.practicum.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.dto.ProductDto;
 import ru.yandex.practicum.service.ProductService;
+
 import java.util.List;
 
 @RestController
@@ -17,8 +21,12 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping(path = {"", "/products"})
-    public List<ProductDto> getAllProducts() {
-        return productService.getAllProducts();
+    public Page<ProductDto> getAllProducts(Pageable pageable) {
+        List<ProductDto> all = productService.getAllProducts();
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), all.size());
+        List<ProductDto> pageContent = all.subList(start, end);
+        return new PageImpl<>(pageContent, pageable, all.size());
     }
 
     @PostMapping(path = {"", "/product"})
@@ -27,8 +35,8 @@ public class ProductController {
             ProductDto savedProduct = productService.addProduct(productDto);
             return ResponseEntity.ok(savedProduct);
         } catch (Exception e) {
-            System.out.println("Ошибка добавления товара (возможно дубликат): " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Товар уже существует или данные неверны");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Товар уже существует или данные неверны");
         }
     }
 
@@ -38,8 +46,8 @@ public class ProductController {
             ProductDto savedProduct = productService.addProduct(productDto);
             return ResponseEntity.ok(savedProduct);
         } catch (Exception e) {
-            System.out.println("Ошибка обновления товара: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Ошибка при обновлении товара");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Ошибка при обновлении товара");
         }
     }
 
@@ -59,8 +67,7 @@ public class ProductController {
             if (product != null) {
                 return ResponseEntity.ok(product);
             }
-        } catch (Exception e) {
-            System.out.println("Товар с ID " + id + " не найден.");
+        } catch (Exception ignored) {
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
@@ -84,9 +91,9 @@ public class ProductController {
                 return ResponseEntity.ok(deletedProduct);
             } else {
                 responseDto.setId(numericId);
+                return ResponseEntity.ok(responseDto);
             }
-        } catch (NumberFormatException e) {
-            System.out.println("ID продукта не является числом: " + cleanId);
+        } catch (NumberFormatException ignored) {
         }
 
         return ResponseEntity.ok(responseDto);
@@ -94,20 +101,13 @@ public class ProductController {
 
     @PostMapping(path = {"/assembly", "/store/assembly"})
     public Object assemblyOrder(@RequestBody(required = false) String rawBody) {
-        System.out.println("Запрос на сборку заказа маркетплейса: " + rawBody);
-
         java.util.Map<String, Object> orderResponse = new java.util.HashMap<>();
+        orderResponse.put("id", 101L);
+        orderResponse.put("status", "ASSEMBLING");
+        orderResponse.put("assembly", true);
 
-        try {
-            orderResponse.put("id", 101L);
-            orderResponse.put("status", "ASSEMBLING");
-            orderResponse.put("assembly", true);
-
-            if (rawBody != null && rawBody.contains("products")) {
-                orderResponse.put("products", java.util.Collections.emptyList());
-            }
-        } catch (Exception e) {
-            System.out.println("Ошибка при имитации сборки заказа: " + e.getMessage());
+        if (rawBody != null && rawBody.contains("products")) {
+            orderResponse.put("products", java.util.Collections.emptyList());
         }
 
         return orderResponse;

@@ -21,10 +21,10 @@ import lombok.experimental.FieldDefaults;
 public class Sensor {
     @Id
     @Column(name = "id")
-    String id;
+    private String id;
 
     @Column(name = "hub_id")
-    String hubId;
+    private String hubId;
 
     private String sensorType;
 }

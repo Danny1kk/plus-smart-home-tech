@@ -24,28 +24,27 @@ public class WarehouseController {
     private final WarehouseService warehouseService;
 
     @PostMapping("/reserve")
-    public ResponseEntity<?> checkAndReserveItems(@RequestBody Map<Long, Integer> itemsToReserve) {
+    public ResponseEntity<Boolean> checkAndReserveItems(@RequestBody Map<String, Integer> itemsToReserve) {
         if (itemsToReserve == null || itemsToReserve.isEmpty()) {
             return ResponseEntity.badRequest().body(false);
         }
 
         try {
             boolean success = warehouseService.reserveItems(itemsToReserve);
-
             if (success) {
                 return ResponseEntity.ok(true);
             } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(false);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(false);
             }
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(false);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(false);
         }
     }
 
     @PostMapping(path = {"", "/product", "/goods"})
     public ProductDto createProductDto(@RequestBody ProductDto request) {
-        if (request.getId() != null) {
-            warehouseService.addStock(request.getId(), 0);
+        if (request != null && request.getId() != null) {
+            warehouseService.addStock(String.valueOf(request.getId()), 0);
         }
         return request;
     }
@@ -55,10 +54,9 @@ public class WarehouseController {
                                   @RequestParam(required = false) Integer quantity,
                                   @RequestBody(required = false) ProductDto requestBody) {
         if (productId != null && quantity != null) {
-            warehouseService.addStock(productId, quantity);
+            warehouseService.addStock(String.valueOf(productId), quantity);
         } else if (requestBody != null && requestBody.getId() != null) {
             int qty = 1;
-
             if (requestBody.getQuantity() != null) {
                 try {
                     qty = Integer.parseInt(String.valueOf(requestBody.getQuantity()));
@@ -66,14 +64,12 @@ public class WarehouseController {
                     qty = 1;
                 }
             }
-
-            warehouseService.addStock(requestBody.getId(), qty);
+            warehouseService.addStock(String.valueOf(requestBody.getId()), qty);
             return requestBody;
         }
 
         ProductDto response = (requestBody != null) ? requestBody : new ProductDto();
         if (productId != null) response.setId(productId);
-
         if (quantity != null) response.setQuantity(quantity);
 
         return response;
@@ -86,12 +82,12 @@ public class WarehouseController {
         ProductDto response = new ProductDto();
 
         if (productId != null && quantity != null) {
-            warehouseService.addStock(productId, quantity);
+            warehouseService.addStock(String.valueOf(productId), quantity);
             response.setId(productId);
             response.setQuantity(quantity);
         } else if (requestBody != null && requestBody.getId() != null) {
             int qty = (requestBody.getQuantity() != null) ? requestBody.getQuantity() : 1;
-            warehouseService.addStock(requestBody.getId(), qty);
+            warehouseService.addStock(String.valueOf(requestBody.getId()), qty);
             return requestBody;
         }
 
@@ -100,8 +96,8 @@ public class WarehouseController {
 
     @PostMapping("/goods/receipt/dto")
     public StockReceiptDto addStockReceipt(@RequestBody StockReceiptDto dto) {
-        if (dto != null) {
-            warehouseService.addStock(dto.getProductId(), dto.getQuantity());
+        if (dto != null && dto.getProductId() != null) {
+            warehouseService.addStock(String.valueOf(dto.getProductId()), dto.getQuantity());
         }
         return dto;
     }

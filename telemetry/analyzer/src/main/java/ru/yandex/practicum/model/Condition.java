@@ -15,7 +15,7 @@ import ru.yandex.practicum.kafka.telemetry.event.ConditionTypeAvro;
 public class Condition {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    private Long id;
 
     @Enumerated(EnumType.STRING)
     ConditionTypeAvro type;
@@ -23,5 +23,13 @@ public class Condition {
     @Enumerated(EnumType.STRING)
     ConditionOperationAvro operation;
 
-    Integer value;
+    @Column(name = "field")
+    private String field;
+
+    @Column(name = "value")
+    private String value;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scenario_id", nullable = false)
+    private Scenario scenario;
 }

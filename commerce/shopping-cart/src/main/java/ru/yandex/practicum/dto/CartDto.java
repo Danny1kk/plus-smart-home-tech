@@ -10,5 +10,5 @@ import java.util.Map;
 @NoArgsConstructor
 public class CartDto {
     private String userId;
-    private Map<Long, Integer> items;
+    private Map<String, Integer> items;
 }
