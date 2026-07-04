@@ -33,11 +33,17 @@ public class CartController {
     @PostMapping("/remove")
     public CartDto removeProduct(@RequestParam(value = "username", required = false) String queryUsername,
                                  @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId,
+                                 @RequestParam(value = "productId", required = false) String productId,
                                  @RequestBody(required = false) List<String> productIds) {
         String resolvedUid = resolveUserId(queryUsername, headerUserId);
+
+        if (productId != null && !productId.isBlank() && !productId.equals("null")) {
+            cartService.removeItem(resolvedUid, productId);
+        }
+
         if (productIds != null) {
-            for (String productId : productIds) {
-                cartService.removeItem(resolvedUid, productId);
+            for (String pid : productIds) {
+                cartService.removeItem(resolvedUid, pid);
             }
         }
         return cartService.getCart(resolvedUid);
