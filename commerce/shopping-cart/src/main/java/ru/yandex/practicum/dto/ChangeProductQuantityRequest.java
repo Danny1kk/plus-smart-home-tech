@@ -2,18 +2,16 @@ package ru.yandex.practicum.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import java.util.Map;
+
 import java.util.UUID;
 
 @Data
-@Getter
-@AllArgsConstructor
 @NoArgsConstructor
-public class CartDto {
+@AllArgsConstructor
+public class ChangeProductQuantityRequest {
 
-    private UUID shoppingCartId;
+    private UUID productId;
 
-    private Map<UUID, Long> products;
+    private Long newQuantity;
 }

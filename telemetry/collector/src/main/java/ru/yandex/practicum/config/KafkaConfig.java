@@ -19,9 +19,19 @@ public class KafkaConfig {
     @Bean
     public Producer<String, SpecificRecordBase> getProducer() {
         Properties config = new Properties();
-        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, environment.getProperty("spring.producer.bootstrap-servers"));
-        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, environment.getProperty("spring.producer.key-serializer"));
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, environment.getProperty("spring.producer.value-serializer"));
+
+        String bootstrapServers = environment.getProperty("spring.producer.bootstrap-servers",
+                environment.getProperty("spring.kafka.producer.bootstrap-servers", "localhost:9092"));
+
+        String keySerializer = environment.getProperty("spring.producer.key-serializer",
+                environment.getProperty("spring.kafka.producer.key-serializer", "org.apache.kafka.common.serialization.StringSerializer"));
+
+        String valueSerializer = environment.getProperty("spring.producer.value-serializer",
+                environment.getProperty("spring.kafka.producer.value-serializer", "io.confluent.kafka.serializers.KafkaAvroSerializer"));
+
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keySerializer);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueSerializer);
 
         return new KafkaProducer<>(config);
     }
