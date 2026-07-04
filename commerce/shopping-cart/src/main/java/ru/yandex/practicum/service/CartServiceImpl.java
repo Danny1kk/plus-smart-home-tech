@@ -22,9 +22,14 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public CartDto changeQuantity(String resolvedUid, String productId, Integer quantity) {
-        Long pid = Long.parseLong(productId);
-        Boolean isAvailable = warehouseClient.checkAndReserveItems(Map.of(pid, quantity));
+        if (quantity == null || quantity <= 0) {
+            removeItem(resolvedUid, productId);
+            return getCart(resolvedUid);
+        }
 
+        Long pid = Long.parseLong(productId);
+
+        Boolean isAvailable = warehouseClient.checkAndReserveItems(Map.of(pid, quantity));
         if (Boolean.FALSE.equals(isAvailable)) {
             throw new IllegalArgumentException("Недостаточно товара на складе");
         }
@@ -35,5 +40,10 @@ public class CartServiceImpl implements CartService {
     @Override
     public void removeItem(String resolvedUid, String productId) {
         cartRepository.removeItem(resolvedUid, productId);
+    }
+
+    @Override
+    public void updateProductQuantity(String userId, String productId, int quantity) {
+        changeQuantity(userId, productId, quantity);
     }
 }

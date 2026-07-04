@@ -3,6 +3,7 @@ package ru.yandex.practicum.repository;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.dto.CartDto;
 import ru.yandex.practicum.dto.CartItemDto;
+import ru.yandex.practicum.dto.ProductDto;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -14,14 +15,16 @@ public class CartRepository {
     private final Map<String, CartDto> storage = new ConcurrentHashMap<>();
 
     public CartDto getCart(String userId) {
-        return storage.computeIfAbsent(userId, uid -> new CartDto(new ArrayList<>()));
+        return storage.computeIfAbsent(userId, uid -> new CartDto(uid, new ArrayList<>()));
     }
 
     public CartDto changeQuantity(String userId, String productId, Integer quantity) {
         CartDto cart = getCart(userId);
 
+        Long targetId = Long.valueOf(productId);
+
         CartItemDto existingItem = cart.getItems().stream()
-                .filter(item -> item.getProductId().equals(productId))
+                .filter(item -> item.getProductId() != null && targetId.equals(item.getProductId().getId()))
                 .findFirst()
                 .orElse(null);
 
@@ -32,7 +35,10 @@ public class CartRepository {
                 existingItem.setQuantity(quantity);
             }
         } else if (quantity > 0) {
-            cart.getItems().add(new CartItemDto(productId, quantity));
+            ProductDto shortProduct = new ProductDto();
+            shortProduct.setId(targetId);
+
+            cart.getItems().add(new CartItemDto(shortProduct, quantity));
         }
 
         return cart;
@@ -41,7 +47,8 @@ public class CartRepository {
     public void removeItem(String userId, String productId) {
         CartDto cart = storage.get(userId);
         if (cart != null && cart.getItems() != null) {
-            cart.getItems().removeIf(item -> item.getProductId().equals(productId));
+            Long targetId = Long.valueOf(productId);
+            cart.getItems().removeIf(item -> item.getProductId() != null && targetId.equals(item.getProductId().getId()));
         }
     }
 }

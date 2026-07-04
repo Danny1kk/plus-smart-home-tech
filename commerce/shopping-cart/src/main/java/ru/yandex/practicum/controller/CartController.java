@@ -36,7 +36,6 @@ public class CartController {
                                  @RequestParam(value = "productId", required = false) String productId,
                                  @RequestBody(required = false) List<String> productIds) {
         String resolvedUid = resolveUserId(queryUsername, headerUserId);
-
         if (productId != null && !productId.isBlank() && !productId.equals("null")) {
             cartService.removeItem(resolvedUid, productId);
         }
@@ -46,6 +45,7 @@ public class CartController {
                 cartService.removeItem(resolvedUid, pid);
             }
         }
+
         return cartService.getCart(resolvedUid);
     }
 

@@ -9,5 +9,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CartDto {
+    private String userId;
     private List<CartItemDto> items;
 }
