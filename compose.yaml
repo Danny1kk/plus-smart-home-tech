@@ -24,16 +24,16 @@ services:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
 
   gateway-server:
-    build:
-      context: .
-      dockerfile: infra/gateway-server/Dockerfile
+    build: ./infra/gateway-server
     container_name: gateway-server
     ports:
-      - "5555:5555"
+      - "8080:8080"
     depends_on:
       - discovery-server
+      - config-server
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8085
 
   kafka:
     image: confluentinc/confluent-local:7.4.3

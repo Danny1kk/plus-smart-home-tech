@@ -52,8 +52,16 @@ public class ProductController {
     }
 
     @PostMapping("/quantityState")
-    public void checkQuantityState(@RequestParam Long productId, @RequestParam String quantityState) {
-        productService.checkQuantityState(productId, quantityState);
+    public void checkQuantityState(@RequestParam String productId, @RequestParam String quantityState) {
+        if (productId == null || "null".equals(productId) || productId.isBlank()) {
+            return;
+        }
+
+        try {
+            Long numericId = Long.parseLong(productId);
+            productService.checkQuantityState(numericId, quantityState);
+        } catch (NumberFormatException ignored) {
+        }
     }
 
     @GetMapping("/{id}")

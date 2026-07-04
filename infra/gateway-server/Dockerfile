@@ -1,4 +1,4 @@
-FROM eclipse-temurin:21-jre
-
-COPY infra/gateway-server/target/gateway-server-1.0-SNAPSHOT.jar app.jar
+FROM eclipse-temurin:21-jre-jammy
+ARG JAR_FILE=target/*.jar
+COPY ${JAR_FILE} app.jar
 ENTRYPOINT ["java", "-jar", "/app.jar"]
