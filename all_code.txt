@@ -173,7 +173,6 @@ import ru.yandex.practicum.service.CartService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/shopping-cart")
@@ -192,33 +191,28 @@ public class CartController {
     @PostMapping("/change-quantity")
     public CartDto changeQuantity(@RequestParam("username") String username,
                                   @RequestBody ChangeProductQuantityRequest request) {
-
         return cartService.changeQuantity(
                 username,
-                request.getProductId(),
+                String.valueOf(request.getProductId()),
                 request.getNewQuantity()
         );
     }
 
     @PostMapping("/remove")
     public CartDto removeProduct(@RequestParam("username") String username,
-                                 @RequestBody List<UUID> productIds) {
-
+                                 @RequestBody List<String> productIds) {
         return cartService.removeProducts(username, productIds);
     }
 
     @PutMapping
     public CartDto addProduct(
             @RequestParam("username") String username,
-            @RequestBody Map<UUID, Long> products) {
-
+            @RequestBody Map<String, Long> products) {
         return cartService.addProducts(username, products);
     }
 
     @DeleteMapping
-    public void deactivate(
-            @RequestParam("username") String username) {
-
+    public void deactivate(@RequestParam("username") String username) {
         cartService.deactivate(username);
     }
 
@@ -237,8 +231,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.util.Map;
-import java.util.UUID;
 
 @Data
 @Getter
@@ -246,9 +240,9 @@ import java.util.UUID;
 @NoArgsConstructor
 public class CartDto {
 
-    private UUID shoppingCartId;
-
-    private Map<UUID, Long> products;
+    private String shoppingCartId;
+    private Map<String, Long> products;
+    private boolean active = true;
 }
 
 === FILE: CartItemDto.java ===
@@ -333,7 +327,6 @@ import ru.yandex.practicum.dto.CartDto;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
@@ -342,28 +335,23 @@ public class CartRepository {
     private final Map<String, CartDto> storage = new ConcurrentHashMap<>();
 
     public CartDto getCart(String userId) {
-        return storage.computeIfAbsent(userId, uid -> new CartDto(UUID.randomUUID(), new HashMap<>()));
+        return storage.computeIfAbsent(userId, uid -> new CartDto(uid, new HashMap<>(), true));
     }
 
-    public CartDto changeQuantity(String userId, UUID productId, Integer quantity) {
+    public CartDto changeQuantity(String userId, String productId, Long quantity) {
         CartDto cart = getCart(userId);
-        Map<UUID, Long> products = cart.getProducts();
-
-        if (products == null) {
-            products = new HashMap<>();
-            cart.setProducts(products);
-        }
+        Map<String, Long> products = cart.getProducts();
 
         if (quantity == null || quantity <= 0) {
             products.remove(productId);
         } else {
-            products.put(productId, quantity.longValue());
+            products.put(productId, quantity);
         }
 
         return cart;
     }
 
-    public void removeItem(String userId, UUID productId) {
+    public void removeItem(String userId, String productId) {
         CartDto cart = storage.get(userId);
         if (cart != null && cart.getProducts() != null) {
             cart.getProducts().remove(productId);
@@ -371,7 +359,10 @@ public class CartRepository {
     }
 
     public void deactivate(String username) {
-        storage.remove(username);
+        CartDto cart = storage.get(username);
+        if (cart != null) {
+            cart.setActive(false);
+        }
     }
 }
 
@@ -382,18 +373,17 @@ import ru.yandex.practicum.dto.CartDto;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public interface CartService {
     CartDto getCart(String resolvedUid);
     CartDto changeQuantity(
             String username,
-            UUID productId,
+            String productId,
             Long quantity
     );
     CartDto removeProducts(
             String username,
-            List<UUID> ids
+            List<String> productIds
     );
     void updateProductQuantity(
             String userId,
@@ -403,7 +393,7 @@ public interface CartService {
 
     CartDto addProducts(
             String username,
-            Map<UUID, Long> products
+            Map<String, Long> products
     );
 
     void deactivate(String username);
@@ -420,7 +410,6 @@ import ru.yandex.practicum.repository.CartRepository;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -435,48 +424,61 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public CartDto changeQuantity(String resolvedUid, UUID productId, Long quantity) {
-        if (quantity == null || quantity <= 0) {
-            removeItem(resolvedUid, productId);
-            return getCart(resolvedUid);
+    public CartDto changeQuantity(String username, String productId, Long quantity) {
+        CartDto cart = cartRepository.getCart(username);
+
+        if (!cart.isActive()) {
+            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
         }
 
-        Long pid = Long.valueOf(productId.hashCode());
+        if (quantity == null || quantity <= 0) {
+            cartRepository.removeItem(username, productId);
+            return cartRepository.getCart(username);
+        }
 
+        Long pid = Long.valueOf(productId);
         Boolean isAvailable = warehouseClient.checkAndReserveItems(Map.of(pid, quantity.intValue()));
+
         if (Boolean.FALSE.equals(isAvailable)) {
             throw new IllegalArgumentException("РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ С‚РѕРІР°СЂР° РЅР° СЃРєР»Р°РґРµ");
         }
 
-        return cartRepository.changeQuantity(resolvedUid, productId, quantity.intValue());    }
-
-    public void removeItem(String resolvedUid, UUID productId) {
-        cartRepository.removeItem(resolvedUid, productId);
+        return cartRepository.changeQuantity(username, productId, quantity);
     }
 
     @Override
     public void updateProductQuantity(String userId, String productId, int quantity) {
-        changeQuantity(userId, UUID.fromString(productId), (long) quantity);
+        changeQuantity(userId, productId, (long) quantity);
     }
 
     @Override
-    public CartDto removeProducts(String username, List<UUID> ids) {
-        for (UUID id : ids) {
-            removeItem(username, id);
+    public CartDto removeProducts(String username, List<String> productIds) {
+        CartDto cart = cartRepository.getCart(username);
+        if (!cart.isActive()) {
+            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
         }
-        return getCart(username);
+        for (String id : productIds) {
+            cartRepository.removeItem(username, id);
+        }
+        return cartRepository.getCart(username);
     }
 
     @Override
-    public CartDto addProducts(String username, Map<UUID, Long> products) {
-        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+    public CartDto addProducts(String username, Map<String, Long> products) {
+        CartDto cart = cartRepository.getCart(username);
+        if (!cart.isActive()) {
+            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
+        }
+
+        for (Map.Entry<String, Long> entry : products.entrySet()) {
             changeQuantity(username, entry.getKey(), entry.getValue());
         }
-        return getCart(username);
+        return cartRepository.getCart(username);
     }
 
     @Override
     public void deactivate(String username) {
+        cartRepository.deactivate(username);
     }
 }
 
@@ -3672,7 +3674,7 @@ import ru.yandex.practicum.model.hub.enums.DeviceType;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-04T06:22:57+0300",
+    date = "2026-07-04T18:50:46+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component
@@ -3911,7 +3913,7 @@ import ru.yandex.practicum.model.hub.enums.DeviceType;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-04T06:22:57+0300",
+    date = "2026-07-04T18:50:46+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component
@@ -4153,7 +4155,7 @@ import ru.yandex.practicum.model.sensor.TemperatureSensorEvent;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-04T06:22:57+0300",
+    date = "2026-07-04T18:50:46+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component
@@ -4265,7 +4267,7 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorEventAvro;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-04T06:22:57+0300",
+    date = "2026-07-04T18:50:46+0300",
     comments = "version: 1.6.3, compiler: javac, environment: Java 21.0.11 (Microsoft)"
 )
 @Component

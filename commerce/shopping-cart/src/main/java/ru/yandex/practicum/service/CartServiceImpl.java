@@ -26,7 +26,9 @@ public class CartServiceImpl implements CartService {
         CartDto cart = cartRepository.getCart(username);
 
         if (!cart.isActive()) {
-            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Невозможно изменить деактивированную корзину покупок.");
         }
 
         if (quantity == null || quantity <= 0) {
@@ -53,7 +55,9 @@ public class CartServiceImpl implements CartService {
     public CartDto removeProducts(String username, List<String> productIds) {
         CartDto cart = cartRepository.getCart(username);
         if (!cart.isActive()) {
-            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Невозможно изменить деактивированную корзину покупок.");
         }
         for (String id : productIds) {
             cartRepository.removeItem(username, id);
@@ -65,7 +69,9 @@ public class CartServiceImpl implements CartService {
     public CartDto addProducts(String username, Map<String, Long> products) {
         CartDto cart = cartRepository.getCart(username);
         if (!cart.isActive()) {
-            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Невозможно изменить деактивированную корзину покупок.");
         }
 
         for (Map.Entry<String, Long> entry : products.entrySet()) {

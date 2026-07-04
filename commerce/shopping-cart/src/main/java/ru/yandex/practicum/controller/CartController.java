@@ -3,7 +3,6 @@ package ru.yandex.practicum.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.dto.CartDto;
-import ru.yandex.practicum.dto.ChangeProductQuantityRequest;
 import ru.yandex.practicum.service.CartService;
 
 import java.util.List;
@@ -25,12 +24,9 @@ public class CartController {
 
     @PostMapping("/change-quantity")
     public CartDto changeQuantity(@RequestParam("username") String username,
-                                  @RequestBody ChangeProductQuantityRequest request) {
-        return cartService.changeQuantity(
-                username,
-                String.valueOf(request.getProductId()),
-                request.getNewQuantity()
-        );
+                                  @RequestParam("productId") String productId,
+                                  @RequestParam("newQuantity") Long newQuantity) {
+        return cartService.changeQuantity(username, productId, newQuantity);
     }
 
     @PostMapping("/remove")
