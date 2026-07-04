@@ -4,8 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
 import java.util.Map;
-import java.util.UUID;
 
 @Data
 @Getter
@@ -13,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class CartDto {
 
-    private UUID shoppingCartId;
-
-    private Map<UUID, Long> products;
+    private String shoppingCartId;
+    private Map<String, Long> products;
+    private boolean active = true;
 }

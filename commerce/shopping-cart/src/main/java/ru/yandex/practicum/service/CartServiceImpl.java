@@ -8,7 +8,6 @@ import ru.yandex.practicum.repository.CartRepository;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -23,47 +22,60 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public CartDto changeQuantity(String resolvedUid, UUID productId, Long quantity) {
-        if (quantity == null || quantity <= 0) {
-            removeItem(resolvedUid, productId);
-            return getCart(resolvedUid);
+    public CartDto changeQuantity(String username, String productId, Long quantity) {
+        CartDto cart = cartRepository.getCart(username);
+
+        if (!cart.isActive()) {
+            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
         }
 
-        Long pid = Long.valueOf(productId.hashCode());
+        if (quantity == null || quantity <= 0) {
+            cartRepository.removeItem(username, productId);
+            return cartRepository.getCart(username);
+        }
 
+        Long pid = Long.valueOf(productId);
         Boolean isAvailable = warehouseClient.checkAndReserveItems(Map.of(pid, quantity.intValue()));
+
         if (Boolean.FALSE.equals(isAvailable)) {
             throw new IllegalArgumentException("Недостаточно товара на складе");
         }
 
-        return cartRepository.changeQuantity(resolvedUid, productId, quantity.intValue());    }
-
-    public void removeItem(String resolvedUid, UUID productId) {
-        cartRepository.removeItem(resolvedUid, productId);
+        return cartRepository.changeQuantity(username, productId, quantity);
     }
 
     @Override
     public void updateProductQuantity(String userId, String productId, int quantity) {
-        changeQuantity(userId, UUID.fromString(productId), (long) quantity);
+        changeQuantity(userId, productId, (long) quantity);
     }
 
     @Override
-    public CartDto removeProducts(String username, List<UUID> ids) {
-        for (UUID id : ids) {
-            removeItem(username, id);
+    public CartDto removeProducts(String username, List<String> productIds) {
+        CartDto cart = cartRepository.getCart(username);
+        if (!cart.isActive()) {
+            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
         }
-        return getCart(username);
+        for (String id : productIds) {
+            cartRepository.removeItem(username, id);
+        }
+        return cartRepository.getCart(username);
     }
 
     @Override
-    public CartDto addProducts(String username, Map<UUID, Long> products) {
-        for (Map.Entry<UUID, Long> entry : products.entrySet()) {
+    public CartDto addProducts(String username, Map<String, Long> products) {
+        CartDto cart = cartRepository.getCart(username);
+        if (!cart.isActive()) {
+            throw new IllegalArgumentException("Cannot modify a deactivated shopping cart.");
+        }
+
+        for (Map.Entry<String, Long> entry : products.entrySet()) {
             changeQuantity(username, entry.getKey(), entry.getValue());
         }
-        return getCart(username);
+        return cartRepository.getCart(username);
     }
 
     @Override
     public void deactivate(String username) {
+        cartRepository.deactivate(username);
     }
 }

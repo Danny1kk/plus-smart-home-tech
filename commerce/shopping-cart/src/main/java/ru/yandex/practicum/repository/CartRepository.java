@@ -5,7 +5,6 @@ import ru.yandex.practicum.dto.CartDto;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
@@ -14,28 +13,23 @@ public class CartRepository {
     private final Map<String, CartDto> storage = new ConcurrentHashMap<>();
 
     public CartDto getCart(String userId) {
-        return storage.computeIfAbsent(userId, uid -> new CartDto(UUID.randomUUID(), new HashMap<>()));
+        return storage.computeIfAbsent(userId, uid -> new CartDto(uid, new HashMap<>(), true));
     }
 
-    public CartDto changeQuantity(String userId, UUID productId, Integer quantity) {
+    public CartDto changeQuantity(String userId, String productId, Long quantity) {
         CartDto cart = getCart(userId);
-        Map<UUID, Long> products = cart.getProducts();
-
-        if (products == null) {
-            products = new HashMap<>();
-            cart.setProducts(products);
-        }
+        Map<String, Long> products = cart.getProducts();
 
         if (quantity == null || quantity <= 0) {
             products.remove(productId);
         } else {
-            products.put(productId, quantity.longValue());
+            products.put(productId, quantity);
         }
 
         return cart;
     }
 
-    public void removeItem(String userId, UUID productId) {
+    public void removeItem(String userId, String productId) {
         CartDto cart = storage.get(userId);
         if (cart != null && cart.getProducts() != null) {
             cart.getProducts().remove(productId);
@@ -43,6 +37,9 @@ public class CartRepository {
     }
 
     public void deactivate(String username) {
-        storage.remove(username);
+        CartDto cart = storage.get(username);
+        if (cart != null) {
+            cart.setActive(false);
+        }
     }
 }

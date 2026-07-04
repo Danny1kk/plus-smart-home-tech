@@ -8,7 +8,6 @@ import ru.yandex.practicum.service.CartService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/shopping-cart")
@@ -27,33 +26,28 @@ public class CartController {
     @PostMapping("/change-quantity")
     public CartDto changeQuantity(@RequestParam("username") String username,
                                   @RequestBody ChangeProductQuantityRequest request) {
-
         return cartService.changeQuantity(
                 username,
-                request.getProductId(),
+                String.valueOf(request.getProductId()),
                 request.getNewQuantity()
         );
     }
 
     @PostMapping("/remove")
     public CartDto removeProduct(@RequestParam("username") String username,
-                                 @RequestBody List<UUID> productIds) {
-
+                                 @RequestBody List<String> productIds) {
         return cartService.removeProducts(username, productIds);
     }
 
     @PutMapping
     public CartDto addProduct(
             @RequestParam("username") String username,
-            @RequestBody Map<UUID, Long> products) {
-
+            @RequestBody Map<String, Long> products) {
         return cartService.addProducts(username, products);
     }
 
     @DeleteMapping
-    public void deactivate(
-            @RequestParam("username") String username) {
-
+    public void deactivate(@RequestParam("username") String username) {
         cartService.deactivate(username);
     }
 
