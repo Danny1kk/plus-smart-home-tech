@@ -31,7 +31,7 @@ public class CartServiceImpl implements CartService {
 
     private void checkUsernameForEmpty(String username) {
         if (username == null || username.isBlank()) {
-            throw new NotAuthorizedUserException("Username is empty");
+            throw new NotAuthorizedUserException("Имя пользователя пусто");
         }
     }
 
