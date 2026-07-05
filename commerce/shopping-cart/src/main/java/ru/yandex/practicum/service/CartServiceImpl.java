@@ -116,7 +116,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = {feign.FeignException.class, Exception.class})
     public CartDto addProductInCart(String username, Map<UUID, Integer> products) {
         checkUsernameForEmpty(username);
 
@@ -155,7 +155,7 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = {feign.FeignException.class, Exception.class})
     public CartDto changeQuantityInCart(String username, ProductRequest quantityRequest) {
         checkUsernameForEmpty(username);
 

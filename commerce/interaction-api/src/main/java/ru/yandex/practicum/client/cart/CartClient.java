@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.yandex.practicum.dto.cart.ProductRequest;
 import ru.yandex.practicum.dto.cart.CartDto;
-import ru.yandex.practicum.dto.store.ProductPageDto;
 
 import java.util.List;
 import java.util.Map;
@@ -23,7 +22,7 @@ import java.util.UUID;
 @FeignClient(name = "shopping-cart", path = "/api/v1/shopping-cart")
 public interface CartClient {
     @GetMapping
-    ProductPageDto getShoppingCart(@RequestParam String username) throws FeignException;
+    CartDto getShoppingCart(@RequestParam String username) throws FeignException;
 
     @PutMapping
     CartDto addProductInCart(@RequestParam String username,
