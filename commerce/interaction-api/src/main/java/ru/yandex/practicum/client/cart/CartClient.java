@@ -27,16 +27,16 @@ public interface CartClient {
 
     @PutMapping
     CartDto addProductInCart(@RequestParam String userName,
-                                     @RequestBody @NotEmpty Map<UUID, @NotNull @Positive Integer> products) throws FeignException;
+                             @RequestBody @NotEmpty Map<UUID, @NotNull @Positive Integer> products) throws FeignException;
 
     @DeleteMapping
     void deactivationShoppingCart(@RequestParam String userName) throws FeignException;
 
     @PostMapping("/remove")
     CartDto removeProductFromCart(@RequestParam String userName,
-                                          @RequestBody @NotEmpty List<UUID> productsIds) throws FeignException;
+                                  @RequestBody @NotEmpty List<UUID> productsIds) throws FeignException;
 
-    @PostMapping("change-quantity")
+    @PostMapping("/change-quantity")
     CartDto changeQuantityInCart(@RequestParam String userName,
-                                         @Valid @RequestBody ProductRequest quantityRequest) throws FeignException;
+                                 @Valid @RequestBody ProductRequest quantityRequest) throws FeignException;
 }

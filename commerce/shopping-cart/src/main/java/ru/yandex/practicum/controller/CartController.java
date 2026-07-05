@@ -40,7 +40,7 @@ public class CartController {
 
     @PutMapping
     public CartDto addProductInCart(@RequestParam String username,
-                                            @RequestBody @NotEmpty Map<UUID, @NotNull @Positive Integer> products) {
+                                    @RequestBody @NotEmpty Map<UUID, @NotNull @Positive Integer> products) {
         log.info("Получен PUT /api/v1/shopping-cart запрос: с параметром username = {} и телом newProducts = {}",
                 username, products);
         return cartService.addProductInCart(username, products);
@@ -55,13 +55,13 @@ public class CartController {
 
     @PostMapping("/remove")
     public CartDto removeProductFromCart(@RequestParam String username,
-                                                 @RequestBody @NotEmpty List<UUID> productsIds) {
+                                         @RequestBody @NotEmpty List<UUID> productsIds) {
         log.info("Получен POST /api/v1/shopping-cart запрос на удаление продуктов {} из корзины пользователя {}",
                 productsIds, username);
         return cartService.removeProductFromCart(username, productsIds);
     }
 
-    @PostMapping("change-quantity")
+    @PostMapping("/change-quantity")
     public CartDto changeQuantityInCart(@RequestParam String username,
                                         @Valid @RequestBody ProductRequest quantityRequest) {
         log.info("Получен POST /api/v1/shopping-cart запрос на изменение количества товара в корзине пользователя {}", username);
