@@ -23,20 +23,20 @@ import java.util.UUID;
 @FeignClient(name = "shopping-cart", path = "/api/v1/shopping-cart")
 public interface CartClient {
     @GetMapping
-    ProductPageDto getShoppingCart(@RequestParam String userName) throws FeignException;
+    ProductPageDto getShoppingCart(@RequestParam String username) throws FeignException;
 
     @PutMapping
-    CartDto addProductInCart(@RequestParam String userName,
+    CartDto addProductInCart(@RequestParam String username,
                              @RequestBody @NotEmpty Map<UUID, @NotNull @Positive Integer> products) throws FeignException;
 
     @DeleteMapping
-    void deactivationShoppingCart(@RequestParam String userName) throws FeignException;
+    void deactivationShoppingCart(@RequestParam String username) throws FeignException;
 
     @PostMapping("/remove")
-    CartDto removeProductFromCart(@RequestParam String userName,
+    CartDto removeProductFromCart(@RequestParam String username,
                                   @RequestBody @NotEmpty List<UUID> productsIds) throws FeignException;
 
     @PostMapping("/change-quantity")
-    CartDto changeQuantityInCart(@RequestParam String userName,
+    CartDto changeQuantityInCart(@RequestParam String username,
                                  @Valid @RequestBody ProductRequest quantityRequest) throws FeignException;
 }

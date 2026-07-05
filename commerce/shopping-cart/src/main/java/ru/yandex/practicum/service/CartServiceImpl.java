@@ -17,11 +17,7 @@ import ru.yandex.practicum.model.ShoppingCart;
 import ru.yandex.practicum.model.ShoppingCartStatus;
 import ru.yandex.practicum.repository.CartRepository;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +39,8 @@ public class CartServiceImpl implements CartService {
 
                     ShoppingCart cart = ShoppingCart.builder()
                             .username(username)
+                            .status(ShoppingCartStatus.ACTIVE)
+                            .products(new HashMap<>())
                             .build();
                     cartRepository.save(cart);
 

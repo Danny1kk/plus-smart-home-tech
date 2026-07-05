@@ -33,13 +33,13 @@ public class CartController {
     public final CartService cartService;
 
     @GetMapping
-    public CartDto getShoppingCart(@RequestParam String username) {
+    public CartDto getShoppingCart(@RequestParam("username") String username) {
         log.info("Получен GET /api/v1/shopping-cart запрос на получение корзины пользователя {}", username);
         return cartService.getShoppingCart(username);
     }
 
     @PutMapping
-    public CartDto addProductInCart(@RequestParam String username,
+    public CartDto addProductInCart(@RequestParam("username") String username,
                                     @RequestBody @NotEmpty Map<UUID, @NotNull @Positive Integer> products) {
         log.info("Получен PUT /api/v1/shopping-cart запрос: с параметром username = {} и телом newProducts = {}",
                 username, products);
@@ -47,14 +47,14 @@ public class CartController {
     }
 
     @DeleteMapping
-    public void deactivationShoppingCart(@RequestParam String username) {
+    public void deactivationShoppingCart(@RequestParam("username") String username) {
         log.info("Получен DELETE /api/v1/shopping-cart запрос на деактивацию корзины товаров пользователя {}", username);
         cartService.deactivationShoppingCart(username);
     }
 
 
     @PostMapping("/remove")
-    public CartDto removeProductFromCart(@RequestParam String username,
+    public CartDto removeProductFromCart(@RequestParam("username") String username,
                                          @RequestBody @NotEmpty List<UUID> productsIds) {
         log.info("Получен POST /api/v1/shopping-cart запрос на удаление продуктов {} из корзины пользователя {}",
                 productsIds, username);
@@ -62,7 +62,7 @@ public class CartController {
     }
 
     @PostMapping("/change-quantity")
-    public CartDto changeQuantityInCart(@RequestParam String username,
+    public CartDto changeQuantityInCart(@RequestParam("username") String username,
                                         @Valid @RequestBody ProductRequest quantityRequest) {
         log.info("Получен POST /api/v1/shopping-cart запрос на изменение количества товара в корзине пользователя {}", username);
         return cartService.changeQuantityInCart(username, quantityRequest);
