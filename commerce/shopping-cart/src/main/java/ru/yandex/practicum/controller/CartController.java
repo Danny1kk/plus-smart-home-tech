@@ -1,56 +1,71 @@
 package ru.yandex.practicum.controller;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.dto.CartDto;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import ru.yandex.practicum.dto.ChangeProductQuantityRequest;
+import ru.yandex.practicum.dto.cart.CartDto;
+import ru.yandex.practicum.dto.cart.ProductRequest;
 import ru.yandex.practicum.service.CartService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+@Slf4j
 @RestController
-@RequestMapping("/api/v1/shopping-cart")
+@Validated
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/shopping-cart")
 public class CartController {
 
-    private final CartService cartService;
+    public final CartService cartService;
 
     @GetMapping
-    public CartDto getCart(@RequestParam(value = "username") String queryUsername,
-                           @RequestHeader(value = "X-Main-Academy-Smart-Home-User-Id", required = false) String headerUserId) {
-        String resolvedUid = resolveUserId(queryUsername, headerUserId);
-        return cartService.getCart(resolvedUid);
-    }
-
-    @PostMapping("/change-quantity")
-    public CartDto changeQuantity(@RequestParam("username") String username,
-                                  @RequestParam("productId") String productId,
-                                  @RequestParam("newQuantity") Long newQuantity) {
-        return cartService.changeQuantity(username, productId, newQuantity);
-    }
-
-    @PostMapping("/remove")
-    public CartDto removeProduct(@RequestParam("username") String username,
-                                 @RequestBody List<String> productIds) {
-        return cartService.removeProducts(username, productIds);
+    public CartDto getShoppingCart(@RequestParam String username) {
+        log.info("Получен GET /api/v1/shopping-cart запрос на получение корзины пользователя {}", username);
+        return cartService.getShoppingCart(username);
     }
 
     @PutMapping
-    public CartDto addProduct(
-            @RequestParam("username") String username,
-            @RequestBody Map<String, Long> products) {
-        return cartService.addProducts(username, products);
+    public CartDto addProductInCart(@RequestParam String username,
+                                            @RequestBody @NotEmpty Map<UUID, @NotNull @Positive Integer> products) {
+        log.info("Получен PUT /api/v1/shopping-cart запрос: с параметром username = {} и телом newProducts = {}",
+                username, products);
+        return cartService.addProductInCart(username, products);
     }
 
     @DeleteMapping
-    public void deactivate(@RequestParam("username") String username) {
-        cartService.deactivate(username);
+    public void deactivationShoppingCart(@RequestParam String username) {
+        log.info("Получен DELETE /api/v1/shopping-cart запрос на деактивацию корзины товаров пользователя {}", username);
+        cartService.deactivationShoppingCart(username);
     }
 
-    private String resolveUserId(String queryUsername, String headerUserId) {
-        if (headerUserId != null && !headerUserId.isBlank()) {
-            return headerUserId;
-        }
-        return queryUsername;
+
+    @PostMapping("/remove")
+    public CartDto removeProductFromCart(@RequestParam String username,
+                                                 @RequestBody @NotEmpty List<UUID> productsIds) {
+        log.info("Получен POST /api/v1/shopping-cart запрос на удаление продуктов {} из корзины пользователя {}",
+                productsIds, username);
+        return cartService.removeProductFromCart(username, productsIds);
+    }
+
+    @PostMapping("change-quantity")
+    public CartDto changeQuantityInCart(@RequestParam String username,
+                                        @Valid @RequestBody ProductRequest quantityRequest) {
+        log.info("Получен POST /api/v1/shopping-cart запрос на изменение количества товара в корзине пользователя {}", username);
+        return cartService.changeQuantityInCart(username, quantityRequest);
     }
 }

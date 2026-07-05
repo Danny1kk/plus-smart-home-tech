@@ -4,10 +4,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 import ru.yandex.practicum.kafka.telemetry.event.ScenarioAddedEventAvro;
 import ru.yandex.practicum.model.*;
 import ru.yandex.practicum.repository.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -82,6 +86,10 @@ public class ScenarioAddedHandler implements HubEventHandler {
     }
 
     private void processActions(Scenario scenario, ScenarioAddedEventAvro avro, String hubId) {
+        if (avro.getActions() == null) return;
+
+        List<Action> actionsToSave = new ArrayList<>();
+
         avro.getActions().forEach(aDto -> {
             Sensor sensor = sensorRepository.findById(aDto.getSensorId())
                     .orElseGet(() -> sensorRepository.save(Sensor.builder()
@@ -90,10 +98,12 @@ public class ScenarioAddedHandler implements HubEventHandler {
                             .sensorType(aDto.getType() != null ? aDto.getType().name() : null)
                             .build()));
 
-            Action action = actionRepository.save(Action.builder()
-                    .type(aDto.getType())
-                    .value(aDto.getValue())
-                    .build());
+            Action action = Action.builder()
+                    .type(ActionTypeAvro.valueOf(aDto.getType().name()))
+                    .value(asInteger(aDto.getValue()))
+                    .build();
+
+            actionsToSave.add(action);
 
             ScenarioAction scenarioAction = ScenarioAction.builder()
                     .scenario(scenario)
@@ -104,6 +114,8 @@ public class ScenarioAddedHandler implements HubEventHandler {
 
             scenario.addAction(scenarioAction);
         });
+
+        actionRepository.saveAll(actionsToSave);
     }
 
     private Integer asInteger(Object value) {

@@ -1,5 +1,7 @@
 package ru.yandex.practicum.dto;
 
+import ru.yandex.practicum.dto.store.ProductDto;
+
 public class CartItemDto {
     private ProductDto productId;
     private Integer quantity;

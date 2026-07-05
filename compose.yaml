@@ -1,15 +1,23 @@
 version: '3.8'
 
 services:
-  discovery-server:
-    build:
-      context: .
-      dockerfile: infra/discovery-server/Dockerfile
-    container_name: discovery-server
+  kafka:
+    image: confluentinc/confluent-local:7.4.3
+    hostname: kafka
+    container_name: kafka
     ports:
-      - "8761:8761"
+      - "9092:9092"
+      - "9101:9101"
+    restart: unless-stopped
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      KAFKA_NODE_ID: 1
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
 
   config-server:
     build:
@@ -23,57 +31,59 @@ services:
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
 
-  gateway-server:
-    build: ./infra/gateway-server
-    container_name: gateway-server
-    ports:
-      - "8080:8080"
-    depends_on:
-      - discovery-server
-      - config-server
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
-      - SPRING_CLOUD_CONFIG_URI=http://config-server:8085
-
-  kafka:
+  kafka-init-topics:
     image: confluentinc/confluent-local:7.4.3
-    hostname: kafka
-    container_name: kafka
-    ports:
-      - "9092:9092"
-    environment:
-      KAFKA_LISTENERS: INSIDE://0.0.0.0:29092,OUTSIDE://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:29092,OUTSIDE://localhost:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
-      CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
-      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
-
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.4.3
-    container_name: schema-registry
+    container_name: kafka-init-topics
     depends_on:
       - kafka
-    ports:
-      - "8089:8089"
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
+    command: "bash -c \
+                'kafka-topics --create --topic telemetry.sensors.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092 && \
+                kafka-topics --create --topic telemetry.snapshots.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092 && \
+                kafka-topics --create --topic telemetry.hubs.v1 \
+                             --partitions 1 --replication-factor 1 --if-not-exists \
+                             --bootstrap-server kafka:29092'"
+    init: true
 
-  postgres:
-    image: postgres:15
-    container_name: postgres
+  analyzer-db:
+    image: postgres:16.1
+    container_name: analyzer-db
     ports:
-      - "5432:5432"
+      - "6431:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: smarthome
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - POSTGRES_DB=smart-home-telemetry-analyzer
+      - POSTGRES_USER=username
+      - POSTGRES_PASSWORD=password
+
+    commerce-cart-db:
+      image: postgres:16.1
+      container_name: commerce-cart-db
+      ports:
+        - "6432:5432"
+      environment:
+        - POSTGRES_DB=smart-home-commerce-cart
+        - POSTGRES_USER=username
+        - POSTGRES_PASSWORD=password
+
+    commerce-store-db:
+      image: postgres:16.1
+      container_name: commerce-store-db
+      ports:
+        - "6433:5432"
+      environment:
+        - POSTGRES_DB=smart-home-commerce-store
+        - POSTGRES_USER=username
+        - POSTGRES_PASSWORD=password
+
+    commerce-warehouse-db:
+      image: postgres:16.1
+      container_name: commerce-warehouse-db
+      ports:
+        - "6435:5432"
+      environment:
+        - POSTGRES_DB=smart-home-commerce-warehouse
+        - POSTGRES_USER=username
+        - POSTGRES_PASSWORD=password

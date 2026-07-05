@@ -1,35 +1,17 @@
 package ru.yandex.practicum.service;
 
-import org.springframework.stereotype.Service;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import ru.yandex.practicum.dto.cart.CartDto;
+import ru.yandex.practicum.dto.warehouse.AddToCartRequest;
+import ru.yandex.practicum.dto.warehouse.AddressDto;
+import ru.yandex.practicum.dto.warehouse.BookedDto;
+import ru.yandex.practicum.dto.warehouse.WarehouseRequest;
 
-@Service
-public class WarehouseService {
+public interface WarehouseService {
+    void newProduct(WarehouseRequest newRequest);
 
-    private final Map<String, Integer> stock = new ConcurrentHashMap<>();
+    BookedDto checkQuantityProducts(CartDto cartDto);
 
-    public synchronized Boolean reserveItems(Map<String, Integer> items) {
-        if (items == null) return false;
+    void addQuantityProduct(AddToCartRequest addRequest);
 
-        for (Map.Entry<String, Integer> entry : items.entrySet()) {
-            int available = stock.getOrDefault(entry.getKey(), 0);
-            if (available < entry.getValue()) {
-                return false;
-            }
-        }
-
-        for (Map.Entry<String, Integer> entry : items.entrySet()) {
-            int available = stock.getOrDefault(entry.getKey(), 0);
-            stock.put(entry.getKey(), available - entry.getValue());
-        }
-
-        return true;
-    }
-
-    public void addStock(String productId, Integer quantity) {
-        if (productId != null && quantity != null) {
-            stock.put(productId, stock.getOrDefault(productId, 0) + quantity);
-        }
-    }
+    AddressDto getAddress();
 }
