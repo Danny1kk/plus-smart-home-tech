@@ -11,7 +11,6 @@ import ru.yandex.practicum.kafka.telemetry.event.MotionSensorAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorStateAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import ru.yandex.practicum.kafka.telemetry.event.SwitchSensorAvro;
-import ru.yandex.practicum.model.Condition;
 import ru.yandex.practicum.model.Scenario;
 import ru.yandex.practicum.model.ScenarioCondition;
 import ru.yandex.practicum.repository.ScenarioRepository;
@@ -53,13 +52,18 @@ public class SnapshotHandler {
     }
 
     private void sendScenarioAction(Scenario scenario, SensorsSnapshotAvro snapshot) {
+        if (scenario.getActions() == null) return;
+
         scenario.getActions().forEach(scenarioAction -> {
+            String sensorId = scenarioAction.getId().getSensorId();
+
             log.info("gRPC: Отправка команды на устройство {} в рамках сценария {}",
-                    scenarioAction.getId().getSensorId(), scenario.getName());
+                    sensorId, scenario.getName());
+
             routerClient.sendAction(
                     snapshot.getHubId(),
                     scenario.getName(),
-                    scenarioAction.getId().getSensorId(),
+                    sensorId,
                     scenarioAction.getAction(),
                     Instant.ofEpochMilli(snapshot.getTimestamp().toEpochMilli())
             );
@@ -74,19 +78,43 @@ public class SnapshotHandler {
         }
 
         return scenarioConditions.stream()
-                .allMatch(sc -> checkCondition(sc.getCondition(),
-                        sc.getSensor().getId(),
-                        sensorStateMap));
+                .allMatch(sc -> checkCondition(sc, sensorStateMap));
     }
 
+    private boolean checkCondition(ScenarioCondition condition, Map<String, SensorStateAvro> sensorStateMap) {
+        String sensorId = condition.getSensorId();
 
-    private boolean handleOperation(Condition condition, String currentValue, String typeName) {
+        if (sensorStateMap == null || !sensorStateMap.containsKey(sensorId)) {
+            return false;
+        }
+
+        SensorStateAvro sensorState = sensorStateMap.get(sensorId);
+        if (sensorState == null || condition.getType() == null) {
+            return false;
+        }
+
+        String typeName = condition.getType();
+        String currentValue = getSensorValue(sensorState, typeName);
+
+        if (currentValue == null) {
+            return false;
+        }
+
+        boolean result = handleOperation(condition, currentValue, typeName);
+
+        log.info("Проверяю условие датчика {}: тип={}, операция={}, эталон={}, текущее={}, результат: {}",
+                sensorId, typeName, condition.getOperation(), condition.getValue(), currentValue, result);
+
+        return result;
+    }
+
+    private boolean handleOperation(ScenarioCondition condition, String currentValue, String typeName) {
         if (condition.getOperation() == null || currentValue == null) {
             return false;
         }
 
-        String targetValue = condition.getValue() != null ? condition.getValue().toString() : "null";
-        String opName = condition.getOperation().name().toUpperCase();
+        String targetValue = condition.getValue() != null ? condition.getValue() : "null";
+        String opName = condition.getOperation().toUpperCase();
 
         if (opName.equals("EQUALS")) {
             if (currentValue.equalsIgnoreCase(targetValue)) return true;
@@ -118,31 +146,6 @@ public class SnapshotHandler {
                     typeName, currentValue, targetValue);
             return false;
         }
-    }
-
-    private boolean checkCondition(Condition condition, String sensorId, Map<String, SensorStateAvro> sensorStateMap) {
-        if (sensorStateMap == null || !sensorStateMap.containsKey(sensorId)) {
-            return false;
-        }
-
-        SensorStateAvro sensorState = sensorStateMap.get(sensorId);
-        if (sensorState == null || condition.getType() == null) {
-            return false;
-        }
-
-        String typeName = condition.getType().name();
-        String currentValue = getSensorValue(sensorState, typeName);
-
-        if (currentValue == null) {
-            return false;
-        }
-
-        boolean result = handleOperation(condition, currentValue, typeName);
-
-        log.info("Проверяю условие датчика {}: тип={}, операция={}, эталон={}, текущее={}, результат: {}",
-                sensorId, typeName, condition.getOperation(), condition.getValue(), currentValue, result);
-
-        return result;
     }
 
     private String getSensorValue(SensorStateAvro state, String conditionType) {

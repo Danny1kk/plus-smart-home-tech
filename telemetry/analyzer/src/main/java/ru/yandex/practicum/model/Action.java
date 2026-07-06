@@ -14,10 +14,10 @@ import ru.yandex.practicum.kafka.telemetry.event.ActionTypeAvro;
 public class Action {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long id;
+    private Long id;
 
     @Enumerated(EnumType.STRING)
     ActionTypeAvro type;
 
-    Integer value;
+    private Integer value;
 }

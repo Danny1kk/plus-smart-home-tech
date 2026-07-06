@@ -18,5 +18,6 @@ public interface ScenarioActionRepository extends JpaRepository<ScenarioAction, 
     @Query("DELETE FROM ScenarioAction sa WHERE sa.id.scenarioId = :scenarioId")
     void deleteByScenarioId(@Param("scenarioId") Long scenarioId);
 
-    List<ScenarioAction> findByScenario(Scenario scenario);
+    @Query("SELECT sa FROM ScenarioAction sa WHERE sa.id.scenarioId = :scenarioId")
+    List<ScenarioAction> findByScenarioId(@Param("scenarioId") Long scenarioId);
 }
