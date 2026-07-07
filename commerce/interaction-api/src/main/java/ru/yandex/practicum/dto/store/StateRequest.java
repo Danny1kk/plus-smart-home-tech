@@ -12,11 +12,10 @@ import java.util.UUID;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-
 public class StateRequest {
-    @NotNull
+    @NotNull(message = "productId не может быть NULL.")
     UUID productId;
 
-    @NotNull
+    @NotNull(message = "quantityState не может быть NULL.")
     QuantityState quantityState;
 }

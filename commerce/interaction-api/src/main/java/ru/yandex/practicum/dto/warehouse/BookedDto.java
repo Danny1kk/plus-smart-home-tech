@@ -11,14 +11,15 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BookedDto {
-    @NotNull
+
     @Positive
+    @NotNull(message = "deliveryWeight не может быть NULL.")
     Double deliveryWeight;
 
-    @NotNull
     @Positive
+    @NotNull(message = "deliveryVolume не может быть NULL.")
     Double deliveryVolume;
 
-    @NotNull
+    @NotNull(message = "fragile не может быть NULL.")
     Boolean fragile;
 }

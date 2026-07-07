@@ -20,6 +20,10 @@
         <module>infra</module>
         <module>commerce</module>
         <module>telemetry/hub-router</module>
+        <module>infra/gateway</module>
+        <module>commerce/delivery</module>
+        <module>commerce/order</module>
+        <module>commerce/payment</module>
     </modules>
 
     <properties>

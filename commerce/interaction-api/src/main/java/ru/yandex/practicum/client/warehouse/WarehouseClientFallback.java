@@ -2,10 +2,10 @@ package ru.yandex.practicum.client.warehouse;
 
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.dto.store.ProductDto;
-import ru.yandex.practicum.dto.warehouse.AddToCartRequest;
-import ru.yandex.practicum.dto.warehouse.AddressDto;
-import ru.yandex.practicum.dto.warehouse.BookedDto;
-import ru.yandex.practicum.dto.warehouse.WarehouseRequest;
+import ru.yandex.practicum.dto.warehouse.*;
+
+import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class WarehouseClientFallback implements WarehouseClient {
@@ -27,6 +27,21 @@ public class WarehouseClientFallback implements WarehouseClient {
 
     @Override
     public AddressDto getAddress() {
+        throw new WarehouseFallbackException("Fallback response: сервис WAREHOUSE временно недоступен");
+    }
+
+    @Override
+    public void shippedProductForDelivery(DeliveryRequest shippedRequest) {
+        throw new WarehouseFallbackException("Fallback response: сервис WAREHOUSE временно недоступен");
+    }
+
+    @Override
+    public void returnProductToTheWarehouse(Map<UUID, Integer> products) {
+        throw new WarehouseFallbackException("Fallback response: сервис WAREHOUSE временно недоступен");
+    }
+
+    @Override
+    public BookedDto assemblyProductOrderDelivery(ProductsOrderRequest assemblyRequest) {
         throw new WarehouseFallbackException("Fallback response: сервис WAREHOUSE временно недоступен");
     }
 }
