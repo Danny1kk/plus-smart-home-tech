@@ -72,10 +72,17 @@ public class OrderServiceImpl implements OrderService {
                 addressMapper.mapToAddress(createOrder.getDeliveryAddress()));
 
         Order newOrder = Order.builder()
+                .shoppingCartId(createOrder.getShoppingCartDto().getCartId())
+                .products(createOrder.getShoppingCartDto().getProducts())
+                .state(OrderState.NEW)
+                .deliveryWeight(bookedDto.getDeliveryWeight())
+                .deliveryVolume(bookedDto.getDeliveryVolume())
+                .fragile(bookedDto.getFragile())
+                .username(username)
+                .address(address)
+                .build();
 
-        order.setState(OrderState.PRODUCT_RETURNED);
-
-        return toDto(order);
+        return toDto(orderRepository.save(newOrder));
     }
 
     @Override
