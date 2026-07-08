@@ -15,11 +15,6 @@ import java.util.UUID;
 @FeignClient(name = "order", path = "/api/v1/order")
 public interface OrderFeignClient {
 
-//    Page<OrderDto> getOrderByUsername(@Valid @RequestParam String username,
-//                                      @RequestParam @PageableDefault(size = 10,
-//                                              page = 0,
-//                                              direction = Sort.Direction.DESC) Pageable pageable) throws FeignException;
-
     Page<OrderDto> getOrderByUsername(@Valid @RequestParam String username,
                                       @RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "10") int size,

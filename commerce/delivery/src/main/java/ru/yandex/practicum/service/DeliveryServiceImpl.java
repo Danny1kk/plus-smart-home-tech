@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.yandex.practicum.dto.warehouse.AddressDto;
 import ru.yandex.practicum.mapper.DeliveryMapper;
 import ru.yandex.practicum.model.Address;
 import ru.yandex.practicum.model.Delivery;
@@ -72,37 +71,6 @@ public class DeliveryServiceImpl implements DeliveryService {
         delivery.setDeliveryState(DeliveryState.FAILED);
         orderClient.deliveryOrderFailed(delivery.getOrderId());
     }
-
-//    @Override
-//    public Double costDelivery(OrderDto orderDto) {
-//        Delivery delivery = getDeliveryById(orderDto.getDeliveryId());
-//
-//        Address fromAddress = delivery.getFromAddress();
-//        Address toAddress = delivery.getToAddress();
-//
-//        double warehouseMarKup = 1.0;
-//        //if (fromAddress.toString().contains("ADDRESS_2")) {
-//        if ("ADDRESS_2".equals(fromAddress.getStreet())) {
-//            warehouseMarKup = 2.0;
-//        }
-//        double deliveryCost = baseCost + (baseCost * warehouseMarKup);
-//
-//        if (orderDto.getFragile()) {
-//            deliveryCost += deliveryCost * 0.2;
-//        }
-//        deliveryCost += orderDto.getDeliveryWeight() * 0.3 + orderDto.getDeliveryVolume() * 0.2;
-//
-//        if (fromAddress.getStreet() != null && toAddress.getStreet() != null) {
-//            String fromStreet = fromAddress.getStreet().trim().toLowerCase();
-//            String toStreet = toAddress.getStreet().trim().toLowerCase();
-//            if (!fromStreet.equals(toStreet)) {
-//                deliveryCost += deliveryCost * 0.2;
-//            }
-//        } else {
-//            throw new IllegalArgumentException("Адрес не может быть null");
-//        }
-//        return deliveryCost;
-//    }
 
     @Override
     public Double costDelivery(OrderDto orderDto) {

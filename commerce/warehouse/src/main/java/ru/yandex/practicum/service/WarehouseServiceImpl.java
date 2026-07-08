@@ -92,65 +92,8 @@ public class WarehouseServiceImpl implements WarehouseService {
     public BookedDto checkQuantityProducts(CartDto cartDto) {
         Map<UUID, Integer> products = cartDto.getProducts();
         Map<UUID, WarehouseProduct> productMap = warehouseRepository.findAllAsMapByIds(products.keySet());
-        return checkQuantityProducts(products, productMap);
 
-//        Set<UUID> ids = shoppingCartDto.getProducts().keySet();
-//        Map<UUID, WarehouseProduct> productById = warehouseRepository.findAllAsMapByIds(ids);
-//
-//        BookedDto result = BookedDto.builder()
-//                .deliveryVolume(0.0)
-//                .deliveryWeight(0.0)
-//                .fragile(false)
-//                .build();
-//
-//        List<ProductNotEnough> productsNotEnough = new ArrayList<>();
-//        List<UUID> productsNotFound = new ArrayList<>();
-//
-//        for (Map.Entry<UUID, Integer> entry : shoppingCartDto.getProducts().entrySet()) {
-//            UUID id = entry.getKey();
-//            Integer wantedCount = entry.getValue();
-//
-//            if (!productById.containsKey(id)) {
-//                productsNotFound.add(id);
-//                continue;
-//            }
-//
-//            WarehouseProduct product = productById.get(id);
-//
-//            Integer availableCount = product.getQuantity();
-//
-//            if (wantedCount > availableCount) {
-//                productsNotEnough.add(new ProductNotEnough(id, availableCount, wantedCount));
-//                continue;
-//            }
-//
-//            Dimension dimension = product.getDimension();
-//
-//            Double currentVolume = result.getDeliveryVolume();
-//            Double addVolume = dimension.getHeight() * dimension.getWidth() * dimension.getDepth();
-//            Double newVolume = currentVolume + addVolume;
-//            result.setDeliveryVolume(newVolume);
-//
-//            Double currentWeight = result.getDeliveryWeight();
-//            Double addWeight = product.getWeight() * wantedCount;
-//            Double newWeight = currentWeight + addWeight;
-//            result.setDeliveryWeight(newWeight);
-//
-//            if (product.getFragile() != null) {
-//                boolean fragile = result.getFragile() || product.getFragile();
-//                result.setFragile(fragile);
-//            }
-//        }
-//
-//        if (!productsNotFound.isEmpty()) {
-//            throw new NoSpecifiedProductInWarehouseException("Нет информации о товарах на складе ID: " + productsNotFound);
-//        }
-//
-//        if (!productsNotEnough.isEmpty()) {
-//            throw new ProductInShoppingCartLowQuantityInWarehouse("Недостаточно товаров на складе: " + productsNotEnough);
-//        }
-//
-//        return result;
+        return checkQuantityProducts(products, productMap);
     }
 
     @Override

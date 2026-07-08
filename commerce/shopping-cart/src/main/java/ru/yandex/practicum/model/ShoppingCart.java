@@ -19,7 +19,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-import ru.yandex.practicum.model.ShoppingCartStatus;
 
 import java.util.HashMap;
 import java.util.Map;
