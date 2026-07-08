@@ -7,7 +7,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-@ConfigurationPropertiesScan({"ru.yandex.practicum", "ru.yandex.practicum"})
+@ConfigurationPropertiesScan({"ru.yandex.practicum"})
 public class WarehouseApp {
     public static void main(String[] args) {
         SpringApplication.run(WarehouseApp.class, args);

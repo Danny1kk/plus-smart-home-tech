@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import ru.yandex.practicum.dto.store.ProductDto;
+import ru.yandex.practicum.dto.cart.CartDto;
 import ru.yandex.practicum.dto.warehouse.*;
 
 import java.util.Map;
@@ -25,7 +25,7 @@ public interface WarehouseClient {
     void newProduct(@Valid @RequestBody WarehouseRequest newRequest) throws FeignException;
 
     @PostMapping("/check")
-    BookedDto checkQuantityProducts(@Valid @RequestBody ProductDto productDto) throws FeignException;
+    BookedDto checkQuantityProducts(@Valid @RequestBody CartDto cartDto) throws FeignException;
 
     @PostMapping("/add")
     void addQuantityProduct(@Valid @RequestBody AddToCartRequest addRequest) throws FeignException;

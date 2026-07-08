@@ -7,7 +7,8 @@ import org.springframework.context.annotation.Configuration;
 import ru.yandex.practicum.client.decoder.FeignErrorDecoder;
 
 @Configuration
-@EnableFeignClients
+
+@EnableFeignClients(basePackages = {"ru.yandex.practicum"})
 public class Config {
     @Bean
     public Feign.Builder feignBuilder() {

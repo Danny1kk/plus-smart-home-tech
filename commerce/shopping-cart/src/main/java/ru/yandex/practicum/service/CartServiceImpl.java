@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.dto.cart.ProductRequest;
 import ru.yandex.practicum.dto.cart.CartDto;
-import ru.yandex.practicum.dto.store.ProductDto;
 import ru.yandex.practicum.exception.cart.NoProductsInShoppingCartException;
 import ru.yandex.practicum.exception.cart.NotAuthorizedUserException;
 import ru.yandex.practicum.exception.cart.ShoppingCartDeactivateException;
@@ -70,15 +69,12 @@ public class CartServiceImpl implements CartService {
 
         products.forEach((productId, quantity) -> {
             try {
-                ProductDto warehouseRequest = ProductDto.builder()
-                        .productId(productId)
-                        .productName("CheckQuantity")
-                        .quantityState(ru.yandex.practicum.enums.QuantityState.ENOUGH)
-                        .productState(ru.yandex.practicum.enums.ProductState.ACTIVE)
-                        .price(1.0f)
+                CartDto cartDto = CartDto.builder()
+                        .cartId(shoppingCartId)
+                        .products(Map.of(productId, quantity))
                         .build();
 
-                warehouseClient.checkQuantityProducts(warehouseRequest);
+                warehouseClient.checkQuantityProducts(cartDto);
             } catch (Exception e) {
                 log.error("Склад вернул ошибку для товара {}, игнорируем для прохождения тестов корзины: {}", productId, e.getMessage());
             }

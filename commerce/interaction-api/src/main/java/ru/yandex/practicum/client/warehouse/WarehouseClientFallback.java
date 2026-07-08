@@ -1,7 +1,7 @@
 package ru.yandex.practicum.client.warehouse;
 
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.dto.store.ProductDto;
+import ru.yandex.practicum.dto.cart.CartDto;
 import ru.yandex.practicum.dto.warehouse.*;
 
 import java.util.Map;
@@ -16,7 +16,7 @@ public class WarehouseClientFallback implements WarehouseClient {
     }
 
     @Override
-    public BookedDto checkQuantityProducts(ProductDto productDto) {
+    public BookedDto checkQuantityProducts(CartDto cartDto) {
         throw new WarehouseFallbackException("Fallback response: сервис WAREHOUSE временно недоступен");
     }
 

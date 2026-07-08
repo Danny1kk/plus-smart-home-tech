@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.dto.delivery.DeliveryDto;
 import ru.yandex.practicum.dto.order.CreateNewOrder;
 import ru.yandex.practicum.dto.order.OrderDto;
+import ru.yandex.practicum.dto.order.ProductReturn;
 import ru.yandex.practicum.dto.payment.PaymentDto;
 import ru.yandex.practicum.dto.warehouse.ProductsOrderRequest;
 import ru.yandex.practicum.dto.warehouse.BookedDto;
@@ -184,13 +185,13 @@ public class OrderServiceImpl implements OrderService {
         DeliveryDto deliveryDto = deliveryClient.createNewDelivery(DeliveryDto.builder()
                 .fromAddress(warehouseClient.getAddress())
                 .toAddress(addressMapper.mapToAddressDto(order.getAddress()))
-                .orderID(orderId)
+                .orderId(orderId)
                 .deliveryState(DeliveryState.CREATED)
                 .build());
 
         order.setDeliveryId(deliveryDto.getDeliveryId());
 
-        Double deliveryPrice = deliveryClient.coastDelivery(toDto(order));
+        Double deliveryPrice = deliveryClient.costDelivery(toDto(order));
         order.setDeliveryPrice(deliveryPrice);
         return toDto(order);
     }
@@ -218,6 +219,15 @@ public class OrderServiceImpl implements OrderService {
     public OrderDto assemblyOrderFailed(UUID orderId) {
         Order order = getOrderById(orderId);
         order.setState(OrderState.ASSEMBLY_FAILED);
+
+        return toDto(orderRepository.save(order));
+    }
+
+    @Override
+    public OrderDto returnOrderProducts(ProductReturn productReturn) {
+        Order order = getOrderById(productReturn.getOrderId());
+
+        order.setState(OrderState.PRODUCT_RETURNED);
 
         return toDto(orderRepository.save(order));
     }

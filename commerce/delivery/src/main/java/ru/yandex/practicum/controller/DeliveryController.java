@@ -51,8 +51,8 @@ public class DeliveryController {
     }
 
     @PostMapping("/cost")
-    public Double coastDelivery(@Valid @RequestBody OrderDto orderDto) {
+    public Double costDelivery(@Valid @RequestBody OrderDto orderDto) {
         log.info("Начинаем расчет стоимости доставки.");
-        return deliveryService.coastDelivery(orderDto);
+        return deliveryService.costDelivery(orderDto);
     }
 }

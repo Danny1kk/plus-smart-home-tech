@@ -40,7 +40,7 @@ public class ErrorOrderHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public AppError handleValidationException(MethodArgumentNotValidException exp) {
         log.error("ОШИБКА VALIDATION-ORDER", exp);
-        return new AppError("ORDER-VALIDATION EXCEPTION" + exp.getMessage());
+        return new AppError("ORDER-VALIDATION EXCEPTION " + exp.getMessage());
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

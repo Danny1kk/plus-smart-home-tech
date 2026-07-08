@@ -20,5 +20,5 @@ public interface DeliveryFeignClient {
 
     void failedDelivery(@Valid @RequestBody UUID deliveryId) throws FeignException;
 
-    Double coastDelivery(@Valid @RequestBody OrderDto orderDto) throws FeignException;
+    Double costDelivery(@Valid @RequestBody OrderDto orderDto) throws FeignException;
 }

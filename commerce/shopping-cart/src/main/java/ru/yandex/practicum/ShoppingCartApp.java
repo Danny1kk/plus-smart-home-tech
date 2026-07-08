@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 
 @SpringBootApplication
 @EnableDiscoveryClient
-@ConfigurationPropertiesScan({"ru.yandex.practicum", "ru.yandex.practicum"})
+@ConfigurationPropertiesScan({"ru.yandex.practicum"})
 public class ShoppingCartApp {
     public static void main(String[] args) {
         SpringApplication.run(ShoppingCartApp.class, args);

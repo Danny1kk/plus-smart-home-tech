@@ -24,7 +24,7 @@ public class DeliveryDto {
     AddressDto toAddress;
 
     @NotNull(message = "orderID не может быть NULL.")
-    UUID orderID;
+    UUID orderId;
 
     @NotNull(message = "deliveryState не может быть NULL.")
     DeliveryState deliveryState;
