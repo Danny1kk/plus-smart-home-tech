@@ -16,6 +16,6 @@ public class AddToCartRequest {
     UUID productId;
 
     @Min(1)
-    @NotNull
+    @NotNull(message = "quantity не может быть NULL.")
     Integer quantity;
 }

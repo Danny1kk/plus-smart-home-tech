@@ -19,17 +19,17 @@ services:
       KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
       CLUSTER_ID: 'K0EA9p0yEe6MkAAAAkKsEg'
 
-  config-server:
-    build:
-      context: .
-      dockerfile: infra/config-server/Dockerfile
-    container_name: config-server
-    ports:
-      - "8085:8085"
-    depends_on:
-      - discovery-server
-    environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+#  config-server:
+#    build:
+#      context: .
+#      dockerfile: infra/config-server/Dockerfile
+#    container_name: config-server
+#    ports:
+#      - "8085:8085"
+#    depends_on:
+#      - discovery-server
+#    environment:
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
 
   kafka-init-topics:
     image: confluentinc/confluent-local:7.4.3
@@ -87,3 +87,33 @@ services:
         - POSTGRES_DB=smart-home-commerce-warehouse
         - POSTGRES_USER=username
         - POSTGRES_PASSWORD=password
+
+    commerce-delivery-db:
+      image: postgres:16.1
+      container_name: commerce-delivery-db
+      ports:
+        - "6436:5432"
+      environment:
+        - POSTGRES_DB=smart-home-commerce-delivery
+        - POSTGRES_USER=username
+        - POSTGRES_PASSWORD=password
+
+      commerce-order-db:
+        image: postgres:16.1
+        container_name: commerce-order-db
+        ports:
+          - "6437:5432"
+        environment:
+          - POSTGRES_DB=smart-home-commerce-order
+          - POSTGRES_USER=username
+          - POSTGRES_PASSWORD=password
+
+      commerce-payment-db:
+        image: postgres:16.1
+        container_name: commerce-payment-db
+        ports:
+          - "6438:5432"
+        environment:
+          - POSTGRES_DB=smart-home-commerce-payment
+          - POSTGRES_USER=username
+          - POSTGRES_PASSWORD=password

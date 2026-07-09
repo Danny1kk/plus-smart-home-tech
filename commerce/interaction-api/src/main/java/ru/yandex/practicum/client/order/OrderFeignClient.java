@@ -1,0 +1,49 @@
+package ru.yandex.practicum.client.order;
+
+import feign.FeignException;
+import jakarta.validation.Valid;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import ru.yandex.practicum.dto.order.CreateNewOrder;
+import ru.yandex.practicum.dto.order.OrderDto;
+import ru.yandex.practicum.dto.order.ProductReturn;
+
+import java.util.UUID;
+
+@FeignClient(name = "order", path = "/api/v1/order")
+public interface OrderFeignClient {
+
+    Page<OrderDto> getOrderByUsername(@Valid @RequestParam String username,
+                                      @RequestParam(defaultValue = "0") int page,
+                                      @RequestParam(defaultValue = "10") int size,
+                                      @RequestParam(defaultValue = "DESC") String sort);
+
+    OrderDto createNewOrder(@RequestParam String username,
+                            @Valid @RequestBody CreateNewOrder createOrder) throws FeignException;
+
+    OrderDto returnOrderProducts(@Valid @RequestBody ProductReturn productReturn) throws FeignException;
+
+
+    OrderDto paymentOrder(@RequestBody UUID orderId) throws FeignException;
+
+
+    OrderDto paymentOrderFailed(@RequestBody UUID orderId) throws FeignException;
+
+    OrderDto deliveryOrder(@RequestBody UUID orderId) throws FeignException;
+
+    OrderDto deliveryOrderFailed(@RequestBody UUID orderId) throws FeignException;
+
+    OrderDto completedOrder(@RequestBody UUID orderId) throws FeignException;
+
+    OrderDto calculateOrderTotalPrice(@RequestBody UUID orderId) throws FeignException;
+
+    OrderDto calculateOrderDeliveryPrice(@RequestBody UUID orderId) throws FeignException;
+
+
+    OrderDto assemblyOrder(@RequestBody UUID orderId) throws FeignException;
+
+
+    OrderDto assemblyOrderFailed(@RequestBody UUID orderId) throws FeignException;
+}

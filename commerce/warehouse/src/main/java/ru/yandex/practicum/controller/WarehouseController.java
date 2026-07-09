@@ -2,6 +2,8 @@ package ru.yandex.practicum.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,11 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.dto.cart.CartDto;
-import ru.yandex.practicum.dto.warehouse.AddToCartRequest;
-import ru.yandex.practicum.dto.warehouse.AddressDto;
-import ru.yandex.practicum.dto.warehouse.BookedDto;
-import ru.yandex.practicum.dto.warehouse.WarehouseRequest;
+import ru.yandex.practicum.dto.warehouse.*;
 import ru.yandex.practicum.service.WarehouseService;
+
+import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Validated
@@ -53,5 +55,26 @@ public class WarehouseController {
         AddressDto result = warehouseService.getAddress();
         log.info("Адрес склада  УСПЕШНО предоставлен = {}", result);
         return result;
+    }
+
+    @PostMapping("/shipped")
+    public void shippedProductForDelivery(@Valid @RequestBody DeliveryRequest shippedRequest) {
+        log.info("Перeдаем заказ {} в доставку {}", shippedRequest.getOrderId(), shippedRequest.getDeliveryId());
+        warehouseService.shippedProductForDelivery(shippedRequest);
+        log.info("Заказ {} передали в доставку {} УСПЕШНО.", shippedRequest.getOrderId(), shippedRequest.getDeliveryId());
+    }
+
+    @PostMapping("/return")
+    public void returnProductToTheWarehouse(@RequestBody Map<UUID, @NotNull @Positive Integer> products) {
+        log.info("Начинаем возврат товара {} на склад.", products);
+        warehouseService.returnProductToTheWarehouse(products);
+        log.info("Возврат товара {} прошел УСПЕШНО", products);
+    }
+
+    @PostMapping("/assembly")
+    public BookedDto assemblyProductOnOrderForDelivery(@Valid @RequestBody ProductsOrderRequest assemblyRequest) {
+        log.info("Начинаем сборку товара {} к заказу {} для подготовки к отправке.",
+                assemblyRequest.getProducts(), assemblyRequest.getOrderId());
+        return warehouseService.assemblyProductOnOrderForDelivery(assemblyRequest);
     }
 }
